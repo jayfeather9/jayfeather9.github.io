@@ -105,3 +105,4 @@ deploy:
   type: git
   repo: https://github.com/jayfeather9/jayfeather9.github.io.git
   branch: master
+  using: 'node16'
