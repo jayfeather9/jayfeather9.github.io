@@ -1,6 +1,109 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>OS Lab0</title>
+    <url>/2023/07/05/OS-Lab0/</url>
+    <content><![CDATA[<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
+<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
+<p>三次运行 git status 时README.txt位置的对比：</p>
+<ul>
+<li>Untracked：此时位于“未跟踪的文件”中</li>
+<li>Stage：此时位于“要提交的变更：新文件：”中</li>
+<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
+</ul>
+<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
+<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
+<ul>
+<li>Add the file = “git add {filename}”</li>
+<li>Stage the file = “git add {filename}”</li>
+<li>Commit = “git commit”</li>
+</ul>
+<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
+<ol>
+<li>“git checkout – print.c”</li>
+<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
+<li>“git rm --cached hello.txt”</li>
+</ol>
+<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
+<ul>
+<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
+<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
+<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
+</ul>
+<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
+<p>以下是执行命令和结果：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
+<p>以下是command的内容：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
+<p>以下是result文件的内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+<p>解释说明（按照test中的运行情况描述）：</p>
+<ul>
+<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
+<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
+<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
+</ul>
+<p>因此result中分别三行为3，2，1。</p>
+<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
+<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
+<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
+<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
+<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
+<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
+<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
+<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
+<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
+<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
+<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
+<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
+<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
+<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
+<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
+<p>多文件编译时先用-c编译到.o，再一同链接</p>
+<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
+]]></content>
+      <tags>
+        <tag>OS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>OS Lab1</title>
+    <url>/2023/07/05/OS-Lab1/</url>
+    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
+<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
+<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
+<p>使用我们编写的readelf 解析 target/mos 得到：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
+<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
+<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
+<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
+<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
+<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
+<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
+<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
+<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
+<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
+<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
+<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
+<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
+]]></content>
+      <tags>
+        <tag>OS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>OS Challenge Lab5</title>
     <url>/2023/07/05/OS-Challenge-Lab5/</url>
     <content><![CDATA[<p>实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。</p>
@@ -206,103 +309,85 @@
 ]]></content>
   </entry>
   <entry>
-    <title>OS Lab1</title>
-    <url>/2023/07/05/OS-Lab1/</url>
+    <title>OS Lab5</title>
+    <url>/2023/07/05/OS-Lab5/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
-<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
-<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
-<p>使用我们编写的readelf 解析 target/mos 得到：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
-<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
-<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
-<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
-<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
+<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
+<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
+<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
+<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
+<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
+<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
+<p>一个文件控制块大小为 BY2FILE = 256。</p>
+<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
+<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
+<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
+<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
+<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
+<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
+<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
+<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
+<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
+<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
+<p>SECT2BLK 一个磁盘块内的扇区数目</p>
+<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
+<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
+<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
+<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
+<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
+<p>MAXNAMELEN 文件名的最长大小（char数）</p>
+<p>MAXPATHLEN 路径名的最长大小（char数）</p>
+<p>NDIRECT 文件直接指针数量</p>
+<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
+<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
+<p>BY2FILE 文件控制块的大小（字节数）</p>
+<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
+<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
+<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
+<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
+<p>为文件描述符结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>u_int fd_dev_id 外设 id</li>
+<li>u_int fd_offset 读写的当前偏移量</li>
+<li>u_int fd_omode 文件打开方式，如只读</li>
+</ul>
+<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
+<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>struct Fd f_fd 对应的文件描述符</li>
+<li>u_int f_fileid 文件的 id</li>
+<li>struct File f_file 对应的文件系统控制块</li>
+</ul>
+<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
+<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
+<ul>
+<li>char f_name[MAXNAMELEN] 文件名</li>
+<li>uint32_t f_size 文件大小，单位字节</li>
+<li>uint32_t f_type 文件类型，文件或目录</li>
+<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
+<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
+<li>struct File *f_dir 父目录</li>
+<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
+</ul>
+<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
+<p>分为两种，同步消息和返回消息。</p>
+<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
+<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
 <h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
-<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
-<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
-<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
-<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
-<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
-<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
-<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
-<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
+<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
+<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
+<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
+<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
+<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
+<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
+<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
+<p>明确文件目录的结构关系以及内存使用即可。</p>
+<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
+<p>按照要求调用对应的函数即可。</p>
+<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
+<p>参考 write 即可。</p>
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
-]]></content>
-      <tags>
-        <tag>OS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>OS Lab0</title>
-    <url>/2023/07/05/OS-Lab0/</url>
-    <content><![CDATA[<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
-<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
-<p>三次运行 git status 时README.txt位置的对比：</p>
-<ul>
-<li>Untracked：此时位于“未跟踪的文件”中</li>
-<li>Stage：此时位于“要提交的变更：新文件：”中</li>
-<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
-</ul>
-<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
-<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
-<ul>
-<li>Add the file = “git add {filename}”</li>
-<li>Stage the file = “git add {filename}”</li>
-<li>Commit = “git commit”</li>
-</ul>
-<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
-<ol>
-<li>“git checkout – print.c”</li>
-<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
-<li>“git rm --cached hello.txt”</li>
-</ol>
-<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
-<ul>
-<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
-<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
-<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
-</ul>
-<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
-<p>以下是执行命令和结果：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
-<p>以下是command的内容：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
-<p>以下是result文件的内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
-<p>解释说明（按照test中的运行情况描述）：</p>
-<ul>
-<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
-<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
-<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
-</ul>
-<p>因此result中分别三行为3，2，1。</p>
-<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
-<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
-<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
-<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
-<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
-<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
-<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
-<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
-<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
-<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
-<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
-<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
-<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
-<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
-<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
-<p>多文件编译时先用-c编译到.o，再一同链接</p>
-<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
+<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
 ]]></content>
       <tags>
         <tag>OS</tag>
@@ -428,91 +513,6 @@
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>从 lab4 开始就没有实验讲解，需要认真在课下学习研究，并参加两次课上实验了，压力开始变大，需要更加努力更加专注，对 OS 课程需要投入更大精力，更加用心。</p>
 ]]></content>
-  </entry>
-  <entry>
-    <title>OS Lab5</title>
-    <url>/2023/07/05/OS-Lab5/</url>
-    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
-<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
-<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
-<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
-<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
-<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
-<p>一个文件控制块大小为 BY2FILE = 256。</p>
-<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
-<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
-<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
-<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
-<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
-<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
-<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
-<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
-<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
-<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
-<p>SECT2BLK 一个磁盘块内的扇区数目</p>
-<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
-<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
-<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
-<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
-<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
-<p>MAXNAMELEN 文件名的最长大小（char数）</p>
-<p>MAXPATHLEN 路径名的最长大小（char数）</p>
-<p>NDIRECT 文件直接指针数量</p>
-<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
-<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
-<p>BY2FILE 文件控制块的大小（字节数）</p>
-<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
-<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
-<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
-<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
-<p>为文件描述符结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>u_int fd_dev_id 外设 id</li>
-<li>u_int fd_offset 读写的当前偏移量</li>
-<li>u_int fd_omode 文件打开方式，如只读</li>
-</ul>
-<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
-<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>struct Fd f_fd 对应的文件描述符</li>
-<li>u_int f_fileid 文件的 id</li>
-<li>struct File f_file 对应的文件系统控制块</li>
-</ul>
-<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
-<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
-<ul>
-<li>char f_name[MAXNAMELEN] 文件名</li>
-<li>uint32_t f_size 文件大小，单位字节</li>
-<li>uint32_t f_type 文件类型，文件或目录</li>
-<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
-<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
-<li>struct File *f_dir 父目录</li>
-<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
-</ul>
-<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
-<p>分为两种，同步消息和返回消息。</p>
-<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
-<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
-<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
-<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
-<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
-<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
-<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
-<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
-<p>明确文件目录的结构关系以及内存使用即可。</p>
-<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
-<p>按照要求调用对应的函数即可。</p>
-<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
-<p>参考 write 即可。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
-]]></content>
-      <tags>
-        <tag>OS</tag>
-      </tags>
   </entry>
   <entry>
     <title>OS Lab6</title>
