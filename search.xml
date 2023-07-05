@@ -719,4 +719,47 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
         <tag>ML</tag>
       </tags>
   </entry>
+  <entry>
+    <title>GAParts Essay Note</title>
+    <url>/2023/07/05/GAParts-Essay-Note/</url>
+    <content><![CDATA[<h2 id="pointgroup"><a class="markdownIt-Anchor" href="#pointgroup"></a> PointGroup</h2>
+<p><img src="https://file.notion.so/f/s/137612d2-0f12-409f-9aed-41f834dba168/Untitled.png?id=16fc1a99-6642-4096-9202-6f9950433f8f&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=1hHO-l7iJqN4ITLhp7jzp2elJDPKRqy16dNtt1U5S5c&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<h3 id="backbone-network"><a class="markdownIt-Anchor" href="#backbone-network"></a> Backbone Network</h3>
+<p>场景以点云的形式输入进网络，每个点包括三维坐标和三维颜色信息。</p>
+<p>网络形式是一个U-Net（先对点体素化后，使用稀疏卷积SC和submanifold稀疏卷积SSC进行，得到的结果再从体素化生成回点值形式（Submanifold sparse convolutional networks, 2019）），通过网络后，每个点被提取出K维特征。</p>
+<h3 id="clustering"><a class="markdownIt-Anchor" href="#clustering"></a> Clustering</h3>
+<p>然后再从这K维特征中得到两样东西，（通过一个MLP得到）用于语义分割的一维标签S（同一类的标签值相同）和（通过同类点求位置的均值得到）用于预测目标中心位置的三维向量o（offset），指示对于该点，其所属的分割类的中心的方向。</p>
+<p>由于这种分类让每个点按类聚在一起，就可以根据点聚类之间的空位距离对点进行聚类。</p>
+<p>由于这种offset不总准确，论文将原位置p采得一个聚类结果，再由加上offset的新位置q采得一个聚类结果，将两个结果取并集，输入到ScoreNet中</p>
+<h3 id="score-net"><a class="markdownIt-Anchor" href="#score-net"></a> Score Net</h3>
+<p><img src="https://file.notion.so/f/s/16d54e66-b9dd-4151-8d98-911b5f7cde28/Untitled.png?id=abf52d35-dd50-4038-a2cf-9ecf64c09f2e&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=2Z-VtfRYILtiwq7K4ISo8q4OPvJwrxFGO5pOiXUv13k&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<p>对于每个聚类，该聚类i的Ni个点先前提取的K维特征信息构成Ni<em>K维聚类特征，位置构成Ni</em>3维位置特征，和之前类似的方法体素化（每个体素特征求平均）后输入SC和SSC的较小U-Net进一步提取特征后经过max-pooling得到一个聚类特征，进而输入MLP后经过Sigmoid函数得到最终分数Si</p>
+<p>最后用先前的聚类信息和得到的分数信息输入NMS输出最终聚类信息。</p>
+<h2 id="grl-gradient-reversal-layer"><a class="markdownIt-Anchor" href="#grl-gradient-reversal-layer"></a> GRL (<em><strong>*Gradient Reversal Layer)*</strong></em></h2>
+<p><img src="https://file.notion.so/f/s/9574a97d-7b95-4aa2-86eb-7811b3f951d9/v2-ebe7d65b70355baed5ca478173fe0695_r.jpg?id=4d40546b-f3ac-47d2-a43e-37c819d75624&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=SHmsYNLKJeJMveQWwixUuNvUyxOEeonKI1qITfD9X3w&amp;downloadName=v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" alt="v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" /></p>
+<h3 id="grl层"><a class="markdownIt-Anchor" href="#grl层"></a> GRL层</h3>
+<p>梯度下降是最小化目标函数，而GRL这一层的目的是“向负方向梯度上升”，其实就是最大化目标函数。</p>
+<h3 id="模型说明"><a class="markdownIt-Anchor" href="#模型说明"></a> 模型说明</h3>
+<p>上图绿色部分是特征提取，对应GAParts就是那个Sparse U-Net，提取特征F用的</p>
+<p>蓝色部分是处理分类任务用的，对应GAParts就是后续的聚类和score模块等</p>
+<p>粉色部分就是重点的domain classifier，是一个域分类器，本质上是一个判别器。</p>
+<h3 id="grl和domain-classifier的意义"><a class="markdownIt-Anchor" href="#grl和domain-classifier的意义"></a> GRL和domain classifier的意义</h3>
+<p>在训练中，绿色部分和粉色部分构成了一种类似GAN的结构，绿色部分作为生成器，粉色部分作为判别器，目标是让生成出来的feature趋于域自适应（域分类器尝试将feature进行分类，如果这种分类越来越难以进行，说明提取出来的feature就是共通的feature，也就趋向于域自适应了）</p>
+<h2 id="gaparts中的domain-invariant-feature-learning"><a class="markdownIt-Anchor" href="#gaparts中的domain-invariant-feature-learning"></a> GAParts中的Domain-invariant Feature Learning</h2>
+<p>总共提出了三种方法，均是对于domain-classifier的改进，用于使模型更加适应不同类型，能准确提取不同物体的特征。</p>
+<h3 id="part-oriented-feature-query"><a class="markdownIt-Anchor" href="#part-oriented-feature-query"></a> Part-oriented Feature Query</h3>
+<p>由于GAParts是对Parts的分类，因此实际上做分类器是对点向不同的结果label（即parts/clusters的编号i）分类。因此采用对于分数大于某阈值s的所有parts，计算分类器对其的loss再求均值的方法</p>
+<h3 id="multi-resolution"><a class="markdownIt-Anchor" href="#multi-resolution"></a> Multi-Resolution</h3>
+<p>由于部件大小不一，为了能适应多种大小，向Domain Classifier输入的feature来自三个不同大小的U-Net层，最后loss取加权总和。这样能让网络适应不同大小的部件。</p>
+<h3 id="distribution-balancing"><a class="markdownIt-Anchor" href="#distribution-balancing"></a> Distribution-Balancing</h3>
+<p>为了能使训练中对于不同类型不同种类的Parts训练成果比较均匀，采用了一种均匀分布的方法，具体来说是对前述Part-oriented Feature Query在求均值前加了一个权重，对于准确率更高的部分，los计算的就更小一些，同时对于域分布量更大的计算的更小一些。</p>
+]]></content>
+      <categories>
+        <category>VR</category>
+      </categories>
+      <tags>
+        <tag>VR</tag>
+        <tag>ML</tag>
+      </tags>
+  </entry>
 </search>
