@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="思考题  Thinking 5.1 kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。 向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。 因此磁盘设备会更不容">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OS Lab5">
+<meta property="og:url" content="http://example.com/2023/07/05/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="思考题  Thinking 5.1 kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。 向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。 因此磁盘设备会更不容">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-07-05T03:10:00.000Z">
+<meta property="article:modified_time" content="2023-07-05T03:08:06.237Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="OS">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/07/05/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>OS Lab5 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OS Lab5
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2023-07-05 11:10:00 / Modified: 11:08:06" itemprop="dateCreated datePublished" datetime="2023-07-05T11:10:00+08:00">2023-07-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
+<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
+<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
+<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
+<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
+<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
+<p>一个文件控制块大小为 BY2FILE = 256。</p>
+<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
+<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
+<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
+<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
+<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
+<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
+<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
+<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
+<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
+<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
+<p>SECT2BLK 一个磁盘块内的扇区数目</p>
+<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
+<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
+<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
+<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
+<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
+<p>MAXNAMELEN 文件名的最长大小（char数）</p>
+<p>MAXPATHLEN 路径名的最长大小（char数）</p>
+<p>NDIRECT 文件直接指针数量</p>
+<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
+<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
+<p>BY2FILE 文件控制块的大小（字节数）</p>
+<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
+<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
+<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
+<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
+<p>为文件描述符结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>u_int fd_dev_id 外设 id</li>
+<li>u_int fd_offset 读写的当前偏移量</li>
+<li>u_int fd_omode 文件打开方式，如只读</li>
+</ul>
+<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
+<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>struct Fd f_fd 对应的文件描述符</li>
+<li>u_int f_fileid 文件的 id</li>
+<li>struct File f_file 对应的文件系统控制块</li>
+</ul>
+<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
+<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
+<ul>
+<li>char f_name[MAXNAMELEN] 文件名</li>
+<li>uint32_t f_size 文件大小，单位字节</li>
+<li>uint32_t f_type 文件类型，文件或目录</li>
+<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
+<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
+<li>struct File *f_dir 父目录</li>
+<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
+</ul>
+<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
+<p>分为两种，同步消息和返回消息。</p>
+<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
+<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
+<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
+<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
+<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
+<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
+<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
+<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
+<p>明确文件目录的结构关系以及内存使用即可。</p>
+<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
+<p>按照要求调用对应的函数即可。</p>
+<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
+<p>参考 write 即可。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/OS/" rel="tag"># OS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/07/05/lab4%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="prev" title="OS Lab4">
+      <i class="fa fa-chevron-left"></i> OS Lab4
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/07/05/lab3%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="next" title="OS Lab3">
+      OS Lab3 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-51"><span class="nav-number">1.1.</span> <span class="nav-text"> Thinking 5.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-52"><span class="nav-number">1.2.</span> <span class="nav-text"> Thinking 5.2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-53"><span class="nav-number">1.3.</span> <span class="nav-text"> Thinking 5.3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-54"><span class="nav-number">1.4.</span> <span class="nav-text"> Thinking 5.4</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#fsservh"><span class="nav-number">1.4.1.</span> <span class="nav-text"> fs&#x2F;serv.h</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#userincludefsh"><span class="nav-number">1.4.2.</span> <span class="nav-text"> user&#x2F;include&#x2F;fs.h</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-55"><span class="nav-number">1.5.</span> <span class="nav-text"> Thinking 5.5</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-56"><span class="nav-number">1.6.</span> <span class="nav-text"> Thinking 5.6</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#struct-fd"><span class="nav-number">1.6.1.</span> <span class="nav-text"> struct Fd</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#struct-filefd"><span class="nav-number">1.6.2.</span> <span class="nav-text"> struct Filefd</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#struct-file"><span class="nav-number">1.7.</span> <span class="nav-text"> struct File</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-57"><span class="nav-number">1.8.</span> <span class="nav-text"> Thinking 5.7</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%BE%E7%82%B9%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text"> 难点分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%96%E8%AE%BE%E7%9B%B8%E5%85%B3-syscall"><span class="nav-number">2.1.</span> <span class="nav-text"> 外设相关 syscall</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ide"><span class="nav-number">2.2.</span> <span class="nav-text"> ide</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#create_file"><span class="nav-number">2.3.</span> <span class="nav-text"> create_file</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fsc"><span class="nav-number">2.4.</span> <span class="nav-text"> fs.c</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#open-%E5%87%BD%E6%95%B0"><span class="nav-number">2.5.</span> <span class="nav-text"> open 函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#read-%E5%87%BD%E6%95%B0"><span class="nav-number">2.6.</span> <span class="nav-text"> read 函数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E4%BD%93%E4%BC%9A"><span class="nav-number">3.</span> <span class="nav-text"> 实验体会</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

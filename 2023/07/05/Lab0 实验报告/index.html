@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="1 思考题  Thinking 0.1 三次运行 git status 时README.txt位置的对比：  Untracked：此时位于“未跟踪的文件”中 Stage：此时位于“要提交的变更：新文件：”中 Modified：此时位于“尚未暂存以备提交的变更”中  分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用g">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OS Lab0">
+<meta property="og:url" content="http://example.com/2023/07/05/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1 思考题  Thinking 0.1 三次运行 git status 时README.txt位置的对比：  Untracked：此时位于“未跟踪的文件”中 Stage：此时位于“要提交的变更：新文件：”中 Modified：此时位于“尚未暂存以备提交的变更”中  分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用g">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-07-05T03:10:00.000Z">
+<meta property="article:modified_time" content="2023-07-05T03:07:32.411Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="OS">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/07/05/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>OS Lab0 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OS Lab0
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2023-07-05 11:10:00 / Modified: 11:07:32" itemprop="dateCreated datePublished" datetime="2023-07-05T11:10:00+08:00">2023-07-05</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <hr />
+<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
+<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
+<p>三次运行 git status 时README.txt位置的对比：</p>
+<ul>
+<li>Untracked：此时位于“未跟踪的文件”中</li>
+<li>Stage：此时位于“要提交的变更：新文件：”中</li>
+<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
+</ul>
+<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
+<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
+<ul>
+<li>Add the file = “git add {filename}”</li>
+<li>Stage the file = “git add {filename}”</li>
+<li>Commit = “git commit”</li>
+</ul>
+<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
+<ol>
+<li>“git checkout – print.c”</li>
+<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
+<li>“git rm --cached hello.txt”</li>
+</ol>
+<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
+<ul>
+<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
+<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
+<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
+</ul>
+<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
+<p>以下是执行命令和结果：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
+<p>以下是command的内容：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
+<p>以下是result文件的内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+<p>解释说明（按照test中的运行情况描述）：</p>
+<ul>
+<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
+<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
+<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
+</ul>
+<p>因此result中分别三行为3，2，1。</p>
+<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
+<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
+<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
+<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
+<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
+<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
+<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
+<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
+<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
+<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
+<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
+<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
+<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
+<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
+<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
+<p>多文件编译时先用-c编译到.o，再一同链接</p>
+<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/OS/" rel="tag"># OS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/07/05/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="prev" title="OS Lab1">
+      <i class="fa fa-chevron-left"></i> OS Lab1
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/07/05/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="next" title="Lab6">
+      Lab6 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 1 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-01"><span class="nav-number">1.1.</span> <span class="nav-text"> Thinking 0.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-02"><span class="nav-number">1.2.</span> <span class="nav-text"> Thinking 0.2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-03"><span class="nav-number">1.3.</span> <span class="nav-text"> Thinking 0.3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-04"><span class="nav-number">1.4.</span> <span class="nav-text"> Thinking 0.4</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-05"><span class="nav-number">1.5.</span> <span class="nav-text"> Thinking 0.5</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-06"><span class="nav-number">1.6.</span> <span class="nav-text"> Thinking 0.6</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%9A%BE%E7%82%B9%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text"> 2 难点分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E5%8F%96%E7%AC%ACx%E8%A1%8C%E5%86%85%E5%AE%B9"><span class="nav-number">2.1.</span> <span class="nav-text"> Shell 取第x行内容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E5%8F%98%E9%87%8F%E8%87%AA%E5%A2%9E"><span class="nav-number">2.2.</span> <span class="nav-text"> Shell 变量自增</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#grep"><span class="nav-number">2.3.</span> <span class="nav-text"> grep</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#makefile"><span class="nav-number">2.4.</span> <span class="nav-text"> Makefile</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gcc"><span class="nav-number">2.5.</span> <span class="nav-text"> gcc</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E4%BD%93%E4%BC%9A"><span class="nav-number">3.</span> <span class="nav-text"> 实验体会</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
