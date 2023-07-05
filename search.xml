@@ -1,75 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>OS Lab0</title>
-    <url>/2023/07/05/OS-Lab0/</url>
-    <content><![CDATA[<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
-<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
-<p>三次运行 git status 时README.txt位置的对比：</p>
-<ul>
-<li>Untracked：此时位于“未跟踪的文件”中</li>
-<li>Stage：此时位于“要提交的变更：新文件：”中</li>
-<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
-</ul>
-<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
-<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
-<ul>
-<li>Add the file = “git add {filename}”</li>
-<li>Stage the file = “git add {filename}”</li>
-<li>Commit = “git commit”</li>
-</ul>
-<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
-<ol>
-<li>“git checkout – print.c”</li>
-<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
-<li>“git rm --cached hello.txt”</li>
-</ol>
-<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
-<ul>
-<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
-<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
-<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
-</ul>
-<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
-<p>以下是执行命令和结果：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
-<p>以下是command的内容：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
-<p>以下是result文件的内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
-<p>解释说明（按照test中的运行情况描述）：</p>
-<ul>
-<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
-<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
-<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
-</ul>
-<p>因此result中分别三行为3，2，1。</p>
-<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
-<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
-<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
-<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
-<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
-<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
-<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
-<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
-<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
-<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
-<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
-<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
-<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
-<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
-<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
-<p>多文件编译时先用-c编译到.o，再一同链接</p>
-<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
-]]></content>
-      <tags>
-        <tag>OS</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>OS Challenge Lab5</title>
     <url>/2023/07/05/OS-Challenge-Lab5/</url>
     <content><![CDATA[<p>实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。</p>
@@ -275,6 +206,109 @@
 ]]></content>
   </entry>
   <entry>
+    <title>OS Lab1</title>
+    <url>/2023/07/05/OS-Lab1/</url>
+    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
+<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
+<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
+<p>使用我们编写的readelf 解析 target/mos 得到：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
+<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
+<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
+<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
+<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
+<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
+<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
+<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
+<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
+<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
+<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
+<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
+<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
+]]></content>
+      <tags>
+        <tag>OS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>OS Lab0</title>
+    <url>/2023/07/05/OS-Lab0/</url>
+    <content><![CDATA[<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
+<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
+<p>三次运行 git status 时README.txt位置的对比：</p>
+<ul>
+<li>Untracked：此时位于“未跟踪的文件”中</li>
+<li>Stage：此时位于“要提交的变更：新文件：”中</li>
+<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
+</ul>
+<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
+<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
+<ul>
+<li>Add the file = “git add {filename}”</li>
+<li>Stage the file = “git add {filename}”</li>
+<li>Commit = “git commit”</li>
+</ul>
+<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
+<ol>
+<li>“git checkout – print.c”</li>
+<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
+<li>“git rm --cached hello.txt”</li>
+</ol>
+<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
+<ul>
+<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
+<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
+<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
+</ul>
+<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
+<p>以下是执行命令和结果：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
+<p>以下是command的内容：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
+<p>以下是result文件的内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+<p>解释说明（按照test中的运行情况描述）：</p>
+<ul>
+<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
+<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
+<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
+</ul>
+<p>因此result中分别三行为3，2，1。</p>
+<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
+<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
+<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
+<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
+<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
+<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
+<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
+<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
+<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
+<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
+<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
+<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
+<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
+<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
+<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
+<p>多文件编译时先用-c编译到.o，再一同链接</p>
+<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
+]]></content>
+      <tags>
+        <tag>OS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>OS Lab3</title>
     <url>/2023/07/05/OS-Lab3/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
@@ -325,40 +359,6 @@
 <h2 id="实验感想"><a class="markdownIt-Anchor" href="#实验感想"></a> 实验感想</h2>
 <p>lab3 主要学习了进程，核心内容是对于 PCB 的操作处理，同时还简单引入了异常处理的初步流程，但是涉及到异常处理的部分更多是复制粘贴代码，后续还需要在这个基础上再多多了解一下异常处理流程（但其实完成 lab4 的学习之后已经了解了不少异常处理相关的内容）。</p>
 <p>进程本身调度想必是很复杂的内容，在考前还需要多多复习练习读代码。</p>
-]]></content>
-      <tags>
-        <tag>OS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>OS Lab1</title>
-    <url>/2023/07/05/OS-Lab1/</url>
-    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
-<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
-<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
-<p>使用我们编写的readelf 解析 target/mos 得到：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
-<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
-<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
-<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
-<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
-<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
-<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
-<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
-<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
-<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
-<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
-<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
-<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
 ]]></content>
       <tags>
         <tag>OS</tag>
@@ -515,25 +515,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/2023/07/05/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
-<h3 id="create-a-new-post"><a class="markdownIt-Anchor" href="#create-a-new-post"></a> Create a new post</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="run-server"><a class="markdownIt-Anchor" href="#run-server"></a> Run server</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="generate-static-files"><a class="markdownIt-Anchor" href="#generate-static-files"></a> Generate static files</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="deploy-to-remote-sites"><a class="markdownIt-Anchor" href="#deploy-to-remote-sites"></a> Deploy to remote sites</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
-  </entry>
-  <entry>
     <title>OS Lab6</title>
     <url>/2023/07/05/OS-Lab6/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
@@ -596,5 +577,24 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       <tags>
         <tag>a b c d,e</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2023/07/05/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
+<h3 id="create-a-new-post"><a class="markdownIt-Anchor" href="#create-a-new-post"></a> Create a new post</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="run-server"><a class="markdownIt-Anchor" href="#run-server"></a> Run server</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="generate-static-files"><a class="markdownIt-Anchor" href="#generate-static-files"></a> Generate static files</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="deploy-to-remote-sites"><a class="markdownIt-Anchor" href="#deploy-to-remote-sites"></a> Deploy to remote sites</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
   </entry>
 </search>
