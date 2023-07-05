@@ -636,4 +636,56 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
         <tag>Test</tag>
       </tags>
   </entry>
+  <entry>
+    <title>COINS Essay Note</title>
+    <url>/2023/07/05/COINS-Essay-Note/</url>
+    <content><![CDATA[<p>Compositional Human-Scene Interaction Synthesis with Semantic Control</p>
+<p>实现了一种通过高级语义规范生成给定3D场景中的人物动作的方法，比如“坐在椅子上”等。支持人物与3D环境的自然交互，支持多种交互的组合，通过扩展PROX数据集对比现有方法实现了更好的效果。</p>
+<p>语义示例：躺在沙发上、坐在桌子上、摸椅子、躺在椅子上、坐在地板上、摸床、坐在柜子上且摸床、站在地板上且摸显示器、站在地板上且摸桌子等。（不需要额外训练就能支持多种要求的组合）</p>
+<p>关注重点：<strong>语义、交互、动作生成、动作组合</strong></p>
+<h2 id="计算预设"><a class="markdownIt-Anchor" href="#计算预设"></a> 计算预设</h2>
+<h3 id="人体表示"><a class="markdownIt-Anchor" href="#人体表示"></a> 人体表示</h3>
+<p>使用SMPL-X模型表示，一个人被表示为顶点、面片和接触信息的集合。具体来说，存储了655个顶点的坐标、1296个面片的对应三顶点的编号、655个0/1接触特征，用于表述顶点是否和场景有接触。（简化了SMPL-X模型的顶点/面片数量，以方便计算）接触信息的计算方法为：如果某个顶点距离场景物体过近（低于某个值）则为1，即接触，否则为0，即未接触。</p>
+<h3 id="场景表示"><a class="markdownIt-Anchor" href="#场景表示"></a> 场景表示</h3>
+<p>场景被表示为物品实体的集合。每个物品被表示为8192个点的点云集合，每个点包括9维信息：位置、颜色和法线方向。如此表示是为了通用性，与以往方法将场景物体分类表示为独热码区分开来。</p>
+<h3 id="交互表示"><a class="markdownIt-Anchor" href="#交互表示"></a> 交互表示</h3>
+<p>一个交互包括一个人体信息与一个包含了多个原子交互的集合，因为一种交互动作可能包括了不同部位和不同场景位置的接触。每个原子交互包括一对独热码，分别对应动作和物体，如“坐、椅子”，“触摸、桌子”等等。</p>
+<p>注：这里的“桌子”和“椅子”不是泛指所有，而是作者直接在场景中为每个物体定义了一个独热码，在这种交互信息输入中直接指定，要和哪一个物体进行交互。因此后文中网络结构里可以直接将动作独热码和对应的物体进行对应。</p>
+<h2 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h2>
+<h3 id="总览"><a class="markdownIt-Anchor" href="#总览"></a> 总览</h3>
+<p>生成的输入是若干个如上文一样动作和物体对，如“坐、椅子”+“触摸、桌子”等。生成的输出是人体的骨骼动作。</p>
+<p>生成被分为两个部分，首先根据场景信息和交互信息，在场景中生成一个合适的骨盆位置和朝向，这是第一次生成。其次再将场景信息转换为骨盆的局部坐标系信息后，进行第二次生成，生成人体的具体动作信息。两次生成都是由一种基于transformer的cVAE网络完成，分别叫PelvisVAE和BodyVAE。</p>
+<h3 id="网络细节"><a class="markdownIt-Anchor" href="#网络细节"></a> 网络细节</h3>
+<p>首先来看网络的场景信息输入。场景中的每个物体被表示为前文所述8192个点的点云后，输入一个PointNet++（一个将大量点的信息进行编码抽象，取出其中重要信息的网络，可学习）后得到256个点组成的点云。之后，将和物体相关的动作作为（可学习的）embedding嵌入到这256个点的信息中。</p>
+<p>PointNet++抽象过程：8192*(3+6) -&gt; 1024*(3+96) -&gt; 256*(3+256) -&gt; 256*D，前两个是经过集合抽象层，第三个则是一个线性层，将抽象出来的信息编码为transformer需要的D维输入向量。</p>
+<p>而人体信息输入则就是简单的将前述由三种信息组成的人体表示加上由顶点索引决定的positional embedding后，通过一个线性层映射到指定的输入维度，和上述场景信息一同输入到Encoder中。</p>
+<p>上述信息会被输入到一个四层的transformer-encoder中，得到输入交互预测出的隐空间，将隐空间信息和与人体信息相关的模板信息（加上positional embedding）一同输入到transformer-decoder当中，得到所预测的身体表示。其中BodyVAE最后输出的结果会经过一个包含六个线性层+残差链接的MLP得到最终输出的SMPL-X身体表示。</p>
+<h3 id="loss"><a class="markdownIt-Anchor" href="#loss"></a> Loss</h3>
+<p>PelvisVAE的Loss包括位置和朝向和Loss加上KL Loss（见后）。</p>
+<p>BodyVAE的Loss由以下这些部分组成：</p>
+<h4 id="交互loss"><a class="markdownIt-Anchor" href="#交互loss"></a> 交互Loss</h4>
+<p>交互Loss包括对身体655个顶点每个点的如下计算的求和：</p>
+<p>对于每一个点，计算该点和交互对应的物体的所有点的最小距离。</p>
+<p>即，该Loss鼓励身体每一个顶点都与交互对应物体（的任意位置）有零距离接触。</p>
+<h4 id="mesh重建loss"><a class="markdownIt-Anchor" href="#mesh重建loss"></a> mesh重建Loss</h4>
+<p>mesh重建Loss用于使重建所得的人体更加真实，由以下几个项组成：顶点坐标Loss判断顶点坐标变化、法线Loss判断法线角度变化、边长Loss判断每个面片的各边长度变化、正常一致性Loss用于使相邻面的法线变化更加平滑。</p>
+<h4 id="接触特征重建loss"><a class="markdownIt-Anchor" href="#接触特征重建loss"></a> 接触特征重建Loss</h4>
+<p>用于表达接触特征是否有被正常重建，通过计算生成所得人体各个顶点的0/1接触特征和应有的0/1接触特征这两个向量之间的BCE值得到。</p>
+<h4 id="kl-loss"><a class="markdownIt-Anchor" href="#kl-loss"></a> KL Loss</h4>
+<p>通过将Loss中加入 <a href="https://blog.csdn.net/wr1997/article/details/115255712">KL散度</a> 来避免后验失效问题。该KL散度经过一个Charbonnier函数。</p>
+<h4 id="smpl-x回归loss"><a class="markdownIt-Anchor" href="#smpl-x回归loss"></a> SMPL-X回归Loss</h4>
+<p>包括了SMPL-X身体参数对应预测值和真实值相减的L2范数，加上映射为网格顶点的SMPL-X模型对应预测值和真实值的差值的模长。</p>
+<h3 id="组合式骨盆生成"><a class="markdownIt-Anchor" href="#组合式骨盆生成"></a> 组合式骨盆生成</h3>
+<p>这里通过一些计算和训练方式实现了不需要组合式交互数据训练的组合式动作生成。首先是骨盆生成。前述的网络能够对每对交互任务中最后的骨盆生成任务输出一个骨盆位置的概率分布，而对组合式生成任务，本文通过实现如下的一个优化过程实现对多个交互任务的骨盆位置生成：对每个交互任务，保证其得到的生成结果概率尽量大的同时，使得多个生成结果的骨盆位置尽可能接近。再将如此得到的每个交互生成的骨盆位置取均值，即为最终的组合式骨盆生成位置。</p>
+<h3 id="组合式身体生成"><a class="markdownIt-Anchor" href="#组合式身体生成"></a> 组合式身体生成</h3>
+<p>一个交互动作往往不需要用到全身所有位置与目标物体的接触。因此本文将全身分为上肢、下肢和躯干三个部分，同时对于每个动作，计算这个动作对于每个身体部分的发生接触的概率，概率被表示为该动作对应所有接触的顶点数量中位于某个部位的顶点数量占比。如果某个动作在某个部位的接触概率显著大于其他动作，则将其他动作在该部位的注意力设置为0。</p>
+]]></content>
+      <categories>
+        <category>VR</category>
+      </categories>
+      <tags>
+        <tag>VR</tag>
+        <tag>ML</tag>
+      </tags>
+  </entry>
 </search>
