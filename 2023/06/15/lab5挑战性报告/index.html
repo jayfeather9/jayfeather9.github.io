@@ -22,18 +22,17 @@
 
   <meta name="description" content="实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。  思路综述 核心思路主要是在读明白 FAT 规格书的基础上，重写 fs&#x2F;fs.c 为 fs&#x2F;fatfs.c，采用了相对较简单的套用原有代码思路的方法，对照着原来 fs&#x2F;fs.c 的各个函数逐个实现（一部分函数因不">
 <meta property="og:type" content="article">
-<meta property="og:title" content="OS Challenge Lab5">
-<meta property="og:url" content="http://example.com/2023/07/05/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://example.com/2023/06/15/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/index.html">
 <meta property="og:site_name" content="Hexo">
 <meta property="og:description" content="实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。  思路综述 核心思路主要是在读明白 FAT 规格书的基础上，重写 fs&#x2F;fs.c 为 fs&#x2F;fatfs.c，采用了相对较简单的套用原有代码思路的方法，对照着原来 fs&#x2F;fs.c 的各个函数逐个实现（一部分函数因不">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2023-07-05T03:10:00.000Z">
-<meta property="article:modified_time" content="2023-07-05T03:08:14.809Z">
+<meta property="article:published_time" content="2023-06-15T03:27:12.398Z">
+<meta property="article:modified_time" content="2023-07-05T03:15:50.999Z">
 <meta property="article:author" content="John Doe">
-<meta property="article:tag" content="OS">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/2023/07/05/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/">
+<link rel="canonical" href="http://example.com/2023/06/15/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/">
 
 
 <script id="page-configurations">
@@ -46,7 +45,7 @@
   };
 </script>
 
-  <title>OS Challenge Lab5 | Hexo</title>
+  <title> | Hexo</title>
   
 
 
@@ -155,7 +154,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/06/15/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -168,7 +167,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          OS Challenge Lab5
+          
         </h1>
 
         <div class="post-meta">
@@ -177,10 +176,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:10:00 / Modified: 11:08:14" itemprop="dateCreated datePublished" datetime="2023-07-05T11:10:00+08:00">2023-07-05</time>
+              <time title="Created: 2023-06-15 11:27:12" itemprop="dateCreated datePublished" datetime="2023-06-15T11:27:12+08:00">2023-06-15</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:15:50" itemprop="dateModified" datetime="2023-07-05T11:15:50+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -401,9 +406,6 @@
     
 
       <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/OS/" rel="tag"># OS</a>
-          </div>
 
         
 
@@ -411,12 +413,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2023/07/05/Test/" rel="prev" title="Test">
-      <i class="fa fa-chevron-left"></i> Test
+    <a href="/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="prev" title="">
+      <i class="fa fa-chevron-left"></i> 
     </a></div>
       <div class="post-nav-item">
-    <a href="/2023/07/05/lab4%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="next" title="OS Lab4">
-      OS Lab4 <i class="fa fa-chevron-right"></i>
+    <a href="/2023/07/05/hello-world/" rel="next" title="Hello World">
+      Hello World <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -490,7 +492,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

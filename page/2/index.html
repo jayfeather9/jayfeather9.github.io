@@ -22,13 +22,13 @@
 
   <meta property="og:type" content="website">
 <meta property="og:title" content="Hexo">
-<meta property="og:url" content="http://example.com/index.html">
+<meta property="og:url" content="http://example.com/page/2/index.html">
 <meta property="og:site_name" content="Hexo">
 <meta property="og:locale" content="en_US">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/">
+<link rel="canonical" href="http://example.com/page/2/">
 
 
 <script id="page-configurations">
@@ -149,7 +149,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Challenge-Lab5/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -163,7 +163,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Challenge-Lab5/" class="post-title-link" itemprop="url">OS Challenge Lab5</a>
+            <a href="/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -172,268 +172,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:14:16 / Modified: 11:15:55" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:16+08:00">2023-07-05</time>
+              <time title="Created: 2023-05-27 21:58:58" itemprop="dateCreated datePublished" datetime="2023-05-27T21:58:58+08:00">2023-05-27</time>
             </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。</p>
-<h2 id="思路综述"><a class="markdownIt-Anchor" href="#思路综述"></a> 思路综述</h2>
-<p>核心思路主要是在读明白 FAT 规格书的基础上，重写 fs/fs.c 为 fs/fatfs.c，采用了相对较简单的套用原有代码思路的方法，对照着原来 fs/fs.c 的各个函数逐个实现（一部分函数因不需要而被删除，另一部分被替代），对于构造不同的地方通过封装操作函数进行处理，如此操作后，保证新函数和原有函数效果相同，再根据原有的函数，创建新的 fs/fatserv.c (fs/serv.c) user/lib/fatfile.c (user/lib/file.c) user/lib/fatipc.c (user/lib/fsipc.c) 即可。对于一个适当实现的情况，后续几个文件应当只需要进行一些简单修改即可适配。</p>
-<p>最大的难点在于：</p>
-<ul>
-<li>通读并理解全英文的 FAT 规格书（笔者在实际理解中搭配了部分 CSDN 博客与实际实践）</li>
-<li>在操作中正确读取和处理 FatBPB 中的信息，正确维护 FAT 表，管理内存映射</li>
-</ul>
-<p>本实现基于原有的文件系统，新增了 FAT 文件系统进程，恒为 2 号进程（即第三个被启动的进程，原文件系统仍保持为第二个被启动的进程即 1 号进程）。修改了 Makefile 文件以实现创建并挂载 FAT16 格式磁盘在 DISKNO = 1 的磁盘位。</p>
-<p>使用时，操作与原文件系统相同。由于考虑到实际各个文件系统均为不同磁盘的根目录，设置为 /root1 /root2 稍有不合理之处，因此改用了以下调用方式：</p>
-<ul>
-<li>打开文件、创建文件和删除文件需要调用 FAT 文件系统的函数 fat_open()、fat_create() 和 fat_remove()。前两者和原有的 open() 和 remove() 操作相同，唯一区别在于传入路径应为 FAT 磁盘中的绝对路径。创建文件除了文件在 FAT 磁盘的绝对路径外，还需要给出两个参数，分别对应在 FAT 文件系统下的文件参数 attr 和以字节为单位的文件大小 size。文件类型是目录还是文件取决于传入的参数 attr。如果是目录，size 不能小于两个目录项的长度即 64，创建时也会自动生成目录内的 “.” 和 “…” 两个目录项。</li>
-<li>其余不需要传入路径，而是使用文件描述符进行的操作使用原函数如 read()、readn()、write()、close() 等即可。因为使用的是同一套文件描述符，因此这些操作函数是相同的，在 fd.c 中会自动调用 FAT 所需的各个读写或关闭的函数。文件在对目录有更新（如改变大小或删除）或关闭时会自动刷新缓冲区到磁盘，保证下一次启动 MOS 能够正常读取，或使用 mcopy 和 mdir 能正常读取。</li>
-</ul>
-<p>下面将根据 FAT 磁盘的构造简析实现思路：</p>
-<h3 id="fat-磁盘构造说明"><a class="markdownIt-Anchor" href="#fat-磁盘构造说明"></a> FAT 磁盘构造说明</h3>
-<h4 id="fatbpb"><a class="markdownIt-Anchor" href="#fatbpb"></a> FatBPB</h4>
-<p>这是存储在 FAT 磁盘第一个扇区的最前一块区域的，用于存储磁盘基础信息的块，需要在初始化时读入，后续各种处理也需要根据 FatBPB 中的各种信息来完成。</p>
-<p>笔者在实现中定义了一个按字节对齐的结构体，根据 FatBPB 在磁盘中的信息排布定义了相关变量，根据不同变量的大小分别将其定义为 8、16、32位的无符号整型变量或数组。</p>
-<p>整个 FatBPB 包含大量内容，都有在规格书中定义，不再赘述，只举例指出几个与文件处理重点相关的变量：</p>
-<ul>
-<li>BPB_BytsPerSec 16 位，代表磁盘扇区大小</li>
-<li>BPB_SecPerClus 8 位，代表每簇包含扇区数量</li>
-<li>BPB_RootEntCnt 16 位，代表根目录包含的 32 字节目录项数量</li>
-<li>BPB_RsvdSecCnt 16 位，代表保留区的大小，保留区的开始部分是 FatBPB</li>
-</ul>
-<p>这些变量决定了后续我们从哪里开始读磁盘的各个区域，因此需要初始化后保存。我们将其读入后存储在 fs/fatfs.c 的一个结构体变量中，供各个处理函数操作使用。</p>
-<h4 id="fat-表"><a class="markdownIt-Anchor" href="#fat-表"></a> FAT 表</h4>
-<p>磁盘中，紧接着保留区后面的是若干个 FAT 表。在 FAT16 中，FAT 表由许多个 16 位的 FAT 表项组成，每个表项对应了一个簇。表项值为 0x0 时代表该簇为空，为 2 以上总簇数以内的数时代表下一个簇的簇号，为 0xFFFF 时代表该簇是文件/目录的结尾簇。</p>
-<p>FAT 表的前两项用作特殊用途保留，因此簇号从 2 开始编号，表项中对应的“下一个簇簇号”也只能出现大于等于 2 的数。由于 FAT 表项的位数限制，FAT16 所支持的最大簇数也是有限的。</p>
-<p>实现中，笔者将 FAT 表项称为 fat_entry，封装了获取簇号对应的表项值和写入表项值的两个函数。实际进行访问时都要通过这两个函数来操作 FAT 表。</p>
-<p>在此之上，笔者封装了申请一个空簇并清空为 0，申请若干个簇（只操作并修改 FAT 表项），将某个簇号开始的一串簇向后扩展若干个簇大小，将某个簇号开始的一串簇从后往前缩减若干个簇，释放从某簇开始的所有簇这几个函数，用于后续各个文件操作函数进行调用。</p>
-<p>由于实际 FAT 磁盘中是多个 FAT 表互相作为备份，因此每次读写 FAT 表项时，也会同步的检查所有的 FAT 表是否具有相同的内容，并保证向所有 FAT 表写入相同的内容。</p>
-<h4 id="根目录"><a class="markdownIt-Anchor" href="#根目录"></a> 根目录</h4>
-<p>磁盘内在 FAT 表后就是根目录部分。按照 FAT 目录项依次存储了根目录下存放的各个文件或目录对应的目录项。在笔者的实现中，由于 FAT16 的根目录并不和簇一同管理，而是单独一片区域存储，因此在文件系统中也独立出来一段虚拟内存空间进行映射。笔者在初始化时选择直接将根目录下的内容读入内存，以方便文件的访问。</p>
-<h4 id="数据区"><a class="markdownIt-Anchor" href="#数据区"></a> 数据区</h4>
-<p>在根目录后的就是磁盘存储所有数据的地方。每个 FAT 目录项（如果这个文件/目录有大小）都指定了该文件/目录对应的存储空间的开始的第一个簇号，可以根据 FAT 表查找到该文件/目录对应的所有簇的簇号，并实现依次读取。</p>
-<p>具体来说，FAT 规格书提供了公式用于从簇号计算对应磁盘中的开始位置，用以进行磁盘访问。在访问到某文件时，先由 FAT 表得到文件对应的簇号，再访问对应磁盘位置，读入到内存中的对应映射位置即可。这样也避免了如 MOS 文件系统中多级映射带来的 indirect 块的申请与释放问题，某种程度上简化了文件访问操作。</p>
-<h3 id="链表管理的内存映射"><a class="markdownIt-Anchor" href="#链表管理的内存映射"></a> 链表管理的内存映射</h3>
-<p>与 MOS 的原文件系统类似的是，FAT 文件系统也采用文件系统进程的一段内存来将挂载的硬盘中我们需要读取的文件映射到内存中。但是与 MOS 不同的是，由于不希望挂载的硬盘大小受限，FAT 文件系统不采用将整个硬盘空间一一映射到内存的方式，而是采用动态分配制，即通过对一段用于映射的内存空间的管理，实现动态的开辟用于映射磁盘的内存。</p>
-<p>具体来说，FAT 文件系统中，维护了一个双向链表 fat_spaces[]，用于记录已开辟的空间与空闲空间情况。链表元素 struct FatSpace 存储了一段内存的初始地址 st_va，大小 size，所分配给的簇 clus（未分配时设0，由于 FAT 磁盘的簇号必须从 2 开始，因此这么设置是安全的）以及前后链表元素的指针 nxt 和 prev。</p>
-<p>同时设置了两个链表元素 fat_space_head 和 fat_space_tail 分别作为头和尾。这两个元素不存储信息，仅仅用于标识头尾。这两个元素应仅供内存映射部分内部使用，头元素除了 nxt 指针的部分和尾元素除了 prev 指针的部分都不被访问或使用。</p>
-<p>通过内存初始地址 st_va 设为 0 来代表一个链表元素未使用，可供分配。</p>
-<h3 id="长文件名系统"><a class="markdownIt-Anchor" href="#长文件名系统"></a> 长文件名系统</h3>
-<p>FAT 中有一个选择实现的长文件名系统，笔者实现了对其读写的支持。具体来说，对于原本的 FAT 目录项，其规定的文件名存储格式要求文件名（“.”之前的部分）不超过 8 个字符，后缀名（“.”之后的部分）不超过 3 个字符，且只能使用纯大写字母（会丢失文件名的大小写性）和十几个规定好的特殊字符（包括“$%'-_@~`!(){}^#&amp;”，不包括引号），因此对文件名限制较为严格。为了支持现代的复杂文件名，提供了通过在目录项之前多放若干个目录项用于存储更长的文件名的方式，具体来说，一个新增的长文件名存储专用的目录项和原目录项大小相同，包括验证部分和保留部分，剩余部分总计能存储 13 个 Unicode 字符，最多有 31 个这样的目录项连在一起表示一个长文件名，因此大大拓宽（支持 Unicode）和增长（提供更长的支持长度）了文件名的功能，以至于现代操作系统对于一些文件为了保存文件名大小写信息即使能装进 8+3 的范围也要使用长文件名存储。</p>
-<p>显然，这种动态方式占用空间也比最大支持 128 字符，但是每个目录项需要 256 字节的 File 控制块能更显著的节省磁盘空间。</p>
-<p>因此笔者在文件系统中增设了数个用于处理文件名的函数，支持原名到多个长文件名块的正向编码，也支持传入一个开始块（第一个长文件名目录项或唯一一个短文件名目录项）后输出文件名（自动忽略短文件名目录项中多余的位置并自动决策添加或不添加“.”）的操作，供后续处理函数进行处理。</p>
-<h3 id="具体实现"><a class="markdownIt-Anchor" href="#具体实现"></a> 具体实现</h3>
-<h4 id="能够打开和关闭文件读取和写入数据到已打开文件所使用的某个簇"><a class="markdownIt-Anchor" href="#能够打开和关闭文件读取和写入数据到已打开文件所使用的某个簇"></a> 能够打开和关闭文件，读取和写入数据到已打开文件所使用的某个簇</h4>
-<p>调用 user/lib/fatfile.c 中的 fat_open() 函数打开 FAT 文件系统中的文件。模仿原文件系统，笔者在 fatfs.c 中创建了 fat_dir_lookup() 和 fat_walk_path() 等函数，使用类似的操作实现了在 FAT 文件系统中进行按文件名的文件查找。需要注意的是，由于存在长文件名系统，笔者将读取长短文件名封装为了一个函数 fat_get_full_name()，传入开始的一个目录项（长文件名则为第一个长文件名目录项，短文件名则为那个短文件名目录项），根据 FAT 文件系统的规则，向下读取得到目录项对应的全名，并去除短文件名表示中多余的空位，在合适的位置添加点。</p>
-<p>读取和写入方面，前文已经提到过使用链表管理内存映射。FAT 文件系统中，采用以簇为单位的文件映射，即一个文件如果有簇要被使用，则会从前述的链表中调度一段相应的内存空间用于映射该簇，因此内存空间开辟都是以一个簇的大小为单位（不固定，取决于读取到的 BPB 中的簇的大小）。</p>
-<p>由于这种映射方式下，同一个文件的各个簇在内存中既不是连续在一起的，也不是一定占用一页的，原有的按一页一页进行映射的方式就不完全适用于 FAT 文件系统。因此，笔者将读写时的页映射从以页大小为单位改为以簇大小为单位，即映射到用户空间时，如果一个簇大小有不足一页的部分，会将整个页分配给这个簇用于映射，下个簇再新开页进行映射。如此，能够动态的适应簇的不同大小。为了实现这种修改，笔者略微修改了 FAT 文件系统在用户库中用于读取和写入的函数，以实现对每一页，只读写簇占用的部分。</p>
-<h4 id="支持调整文件大小"><a class="markdownIt-Anchor" href="#支持调整文件大小"></a> 支持调整文件大小</h4>
-<p>在实现了对于 FAT 表的操作后，对文件大小的调整只需要调用相关 FAT 表函数即可，由于已经封装好了动态的增大或减小的函数，直接调用，再更新目录项中的文件大小的值即可。</p>
-<p>需要注意的是，由于 FAT 使用簇为单位进行空间分配，在修改大小前如果发现修改前后的文件大小占用的簇数相等，便不再修改，仅对文件目录项存储的文件大小的值进行修改。</p>
-<h4 id="支持删除文件"><a class="markdownIt-Anchor" href="#支持删除文件"></a> 支持删除文件</h4>
-<p>类似的，删除文件也只需要调用相关的 FAT 表函数即可，传入该文件对应的第一个簇号，就会自动的将 FAT 表中各个簇的 FAT 表项清零。需要注意的是，这里删除文件和前述调整大小均只改变 FAT 表项，簇内的内容会在新申请空间时清零，不会在此时修改，以此降低磁盘损耗，提高整体速度。</p>
-<h4 id="支持刷新缓冲区"><a class="markdownIt-Anchor" href="#支持刷新缓冲区"></a> 支持刷新缓冲区</h4>
-<p>笔者按照原文件系统的函数方法实现了相同效果的 dirty 和 flush 相关函数，具体来说，可以将一个文件对应的所有簇设为脏的，调用 flush 时会检查所有为脏的簇并写回磁盘。</p>
-<p>同时新增了一个 flush 函数的参数 force，用于指定无论是否为脏都强制写回这个簇，用于目录项的更新。因为原文件系统中只有 close 一个文件时会设脏，同时目录也不会被 close，为了简便起见的实现文件的删除、调整大小和新建都能在磁盘中存储，加入了 force，在对目录项进行这些修改后会将其强制写回磁盘。</p>
-<h4 id="支持新建文件夹"><a class="markdownIt-Anchor" href="#支持新建文件夹"></a> 支持新建文件夹</h4>
-<p>为了支持新建文件/文件夹，首先需要支持对一段若干长度的目录项的申请，用于长文件名的存储。为此，笔者加入了 fat_dir_alloc_files() 函数，能够在一个目录下申请指定数目的连续的空目录项并返回对应的指针。</p>
-<p>由于 FAT 文件系统对于短名目录项的文件名的特殊要求，加入了 encode_char() 函数，将字符编码为仅包含大写字母和指定字符的短文件名格式。加入了 encode_short_name() 函数，为指定的短文件名目录项指针写入相对应的合规格的文件名。加入了 encode_long_name() 函数，为一段连续的长文件名目录项指针写入对应的文件名。由于 C 语言的限制，目前该 FAT 文件系统仅支持 ASCII 文件名，但会按照 Unicode 方式存储，保证其他系统也能正常读取。</p>
-<p>此外，在创建文件时，FAT 还会维护文件相关的各个时间信息，这在笔者的系统中通过封装在 user/lib/time.c 的函数实现，后文会详述。该文件通过访问系统的 RTC 时钟得到 UTC 时间，+8h 得到 CST 时间后在文件系统中进行存储，并调用 FAT 表项操作函数进行空间的申请，同时按照短文件名的设置好的文件名生成 FAT 要求的 checksum 存储到每个长文件名目录项中。</p>
-<p>如果通过参数判断得到新建的是文件夹，则会根据 FAT 规格要求，在文件夹的簇内新建两个分别对应当前目录和父目录的目录项，名为 “.” 和 “…”。</p>
-<h3 id="运行测试"><a class="markdownIt-Anchor" href="#运行测试"></a> 运行测试</h3>
-<p>在根目录下调用 make test lab=5_chlg &amp;&amp; make run 即可运行挑战性任务的测试，测试了原 lab5_4 lab5_5 的测试点内容，并添加了能够读取到多个簇的长文件的创建和读写测试，以及文件夹的创建测试。</p>
-<p>没有输出任何 panic 和 assert 信息即为测试通过。</p>
-<h2 id="代码架构"><a class="markdownIt-Anchor" href="#代码架构"></a> 代码架构</h2>
-<h3 id="新增文件总览"><a class="markdownIt-Anchor" href="#新增文件总览"></a> 新增文件总览</h3>
-<ul>
-<li>fs 文件夹下有 fatfs.c fatserv.c fatserv.h</li>
-<li>user/include 下有 fatfs.h</li>
-<li>user/lib 下有 time.c fatfile.c fatipc.c</li>
-</ul>
-<p>后文主要叙述一些区别于原有文件系统，为了增加相关功能支持而新加入的函数。而如 fatfs.c fatserv.c fatfile.c fatipc.c 均为参照原文件系统中文件 fs.c serv.c file.c fsipc.c 的各个函数功能，进行简单修改得到，笔者在代码书写中进行的原创部分均有在前文“具体实现”中提到，便不再详述。</p>
-<h3 id="utils-基础支持部分"><a class="markdownIt-Anchor" href="#utils-基础支持部分"></a> Utils （基础支持部分）</h3>
-<p>该部分列举一些在实现 FAT 文件系统中不与 FAT 文件处理直接相关的，但是为了更方便处理封装成函数的内容。</p>
-<h4 id="userlibtimec"><a class="markdownIt-Anchor" href="#userlibtimec"></a> user/lib/time.c</h4>
-<p>本文件从 lab5-1-exam中复制得到，并进行了改动和增量。</p>
-<p>原有的 get_time() 函数被保留，仍用于获取系统 RTC 时钟中的当前时间，返回值精确到秒，传入指针对应 us 变量是微秒级别的偏移。</p>
-<p>新增 get_all_time() 函数以及其中用于判断闰年的函数 is_leap_year()，其中 get_all_time() 用于将单位为秒的当前时间转化为 UTC 时间下的年月日时分秒格式，存储在传入的六个整型指针之中，方便存储文件创建与更改信息用。</p>
-<p>新增 get_fat_time() 函数，将前述获取到的年月日时分秒信息编码为 FAT 中存储日期、时间等的具体格式。</p>
-<p>新增两个用于打印 FAT 中编码的日期和时间信息的函数，用于调试。</p>
-<h3 id="相关定义"><a class="markdownIt-Anchor" href="#相关定义"></a> 相关定义</h3>
-<p>该部分主要列举在头文件中定义的各种结构体与宏定义相关信息。</p>
-<h4 id="struct-fatbpb"><a class="markdownIt-Anchor" href="#struct-fatbpb"></a> struct FATBPB</h4>
-<p>如前，用于读取和存储 FAT 磁盘开头的 BPB 块信息，由于需要依靠指针的强制类型转换进行读取，需要添加参数使其按字节对齐。按照 FAT 中对 BPB 的定义进行各个参数的大小和名字定义。</p>
-<p>文件系统中会定义一个该变量，在文件系统初始化时相关信息从磁盘中复制得到。</p>
-<h4 id="struct-fatdisk"><a class="markdownIt-Anchor" href="#struct-fatdisk"></a> struct FATDISK</h4>
-<p>由于 FatBPB 中只定义了一些基础信息，更多的信息需要通过多个 FatBPB 中的内容计算得到，比如单个簇的字节数就需要 FatBPB.BPB_BytsPerSec * FatBPB.BPB_SecPerClus 得到，在代码书写中过稍显冗余，因此定义了一个结构体 FatDisk，用于存储一些常用变量，将在初始化时读入 FatBPB 后根据其值计算得到，同样存储在 fs/fatfs.c 的一个结构体变量中。</p>
-<p>FatDisk 结构体包括如下变量，均存储为 32 位整型：</p>
-<ul>
-<li>RootDirSectors 根目录所包含的扇区数量</li>
-<li>FATSz 一个 FAT 表占用的扇区数量</li>
-<li>TotSec 磁盘总扇区数量</li>
-<li>DataSec 磁盘数据区（存各个簇的部分）包含扇区数量</li>
-<li>CountofClusters 磁盘数据区簇数</li>
-<li>FirstRootDirSecNum 根目录第一个扇区的扇区编号</li>
-<li>BytsPerClus 一个簇包含的字节数</li>
-</ul>
-<h4 id="struct-fatdirent"><a class="markdownIt-Anchor" href="#struct-fatdirent"></a> struct FATDIRENT</h4>
-<p>是 FAT directory entry 的简写，代表 FAT 的目录项。各个参数定义和大小与 FAT 中对常规目录项的定义相同，记录了一个目录的各种信息。</p>
-<p>用于从目录中读取目录包含的内容信息，类似于 MOS 原本文件系统中的 struct File 结构体，在各种传参时会用到。</p>
-<h4 id="struct-fatlongname"><a class="markdownIt-Anchor" href="#struct-fatlongname"></a> struct FATLONGNAME</h4>
-<p>作为 FAT 中存储目录项的长文件名的附加目录项结构体存在，各个参数定义和大小与 FAT 中对长文件名目录项的定义相同，用于记录和某个目录项对应的长文件名（也可能是目录名）。</p>
-<p>虽然 FAT 规格中按 UNICODE 存储，但由于复杂性问题，存名字的部分按 char 为单位进行存储，也暂时仅支持 UNICODE 中 ASCII 部分（但是和其他系统兼容）。</p>
-<p>用于从目录中读取附加的长文件名信息。</p>
-<h4 id="struct-fatspace"><a class="markdownIt-Anchor" href="#struct-fatspace"></a> struct FatSpace</h4>
-<p>作为文件系统中进行内存映射所使用的专用双向链表的链表元素，一个元素代表在 FAT 文件系统中用于映射的一段内存，记录了开始地址、长度和所属的簇号，内存以簇为单位进行分配，记录的簇号为零时代表这段内存是未使用的。</p>
-<h4 id="e_fat_"><a class="markdownIt-Anchor" href="#e_fat_"></a> E_FAT_*</h4>
-<p>记录了 FAT 文件系统中一些出现的错误情况，从 1000 开始编号，以方便与其他错误号进行区分，各个错误号具体含义如下：</p>
-<p>// TODO</p>
-<h4 id="fat_attr_"><a class="markdownIt-Anchor" href="#fat_attr_"></a> FAT_ATTR_*</h4>
-<p>记录了 FAT 规定的在目录项中的 Attr 部分的各个存储值含义，包括只读、隐藏、系统、容量id、目录、Archive、长文件名目录项。</p>
-<h4 id="fat_last_long_entry"><a class="markdownIt-Anchor" href="#fat_last_long_entry"></a> FAT_LAST_LONG_ENTRY</h4>
-<p>FAT 的长文件名目录项中，第一个字节存储了 Ord，即该目录项在对应的所有长文件名目录项中的次序，以倒序排列。而存储在最前的一个长文件名目录项的该字节会额外按位或一个 0x40，即该宏定义对应的值，用于标注该项是第一个。</p>
-<h4 id="fat_max_"><a class="markdownIt-Anchor" href="#fat_max_"></a> FAT_MAX_*</h4>
-<p>有四项，分别记录了当前文件系统支持的最大簇大小（以字节为单位），当前文件系统记录空间的链表存储的链表元素最大数目，根目录最大扇区数以及根目录最大字节数。</p>
-<h4 id="fatva"><a class="markdownIt-Anchor" href="#fatva"></a> FATVA*</h4>
-<p>包括三项，分别代表在 FAT 文件系统进程中用于映射读取的 FAT 磁盘文件的这部分内存的虚拟地址的下界、上界和范围大小（分别为 FATVAMAX，FATVAMIN，FATROOTVA）。</p>
-<h4 id="fatrootva"><a class="markdownIt-Anchor" href="#fatrootva"></a> FATROOTVA</h4>
-<p>代表在 FAT 文件系统进程中用于映射根目录的部分内存空间的起始地址，实现中被定义为FATVAMAX + 0x1000。</p>
-<h3 id="内存映射"><a class="markdownIt-Anchor" href="#内存映射"></a> 内存映射</h3>
-<p>该部分主要管理内存映射空间的分配和回收。</p>
-<h4 id="alloc_fat_spacest_va-size-clus"><a class="markdownIt-Anchor" href="#alloc_fat_spacest_va-size-clus"></a> alloc_fat_space(st_va, size, clus)</h4>
-<p>当需要新建一个链表元素时，调用该函数，在所有链表元素中找到一个未使用的元素，并将其三个值设置为传入参数对应的值，并返回该元素的指针。</p>
-<p>该函数不负责维护链表向前和向后的指针，需要调用后由其他部分维护。</p>
-<p>该函数是一个内存映射管理函数内部使用的函数，不应当在内存映射部分之外的地方调用。</p>
-<h4 id="insert_head_fat_space_listst_va-size-clus"><a class="markdownIt-Anchor" href="#insert_head_fat_space_listst_va-size-clus"></a> insert_head_fat_space_list(st_va, size, clus)</h4>
-<p>该函数的作用是向链表头插入一个元素。</p>
-<p>先调用 alloc_fat_space() 获取一个元素并设置好信息，再将其插入到链表头的后面，总共要重设四项内容。</p>
-<p>该函数仅用于内部处理，不应当被内存映射部分之外的部分调用。</p>
-<h4 id="remove_fat_space_listfsp"><a class="markdownIt-Anchor" href="#remove_fat_space_listfsp"></a> remove_fat_space_list(fsp)</h4>
-<p>将一个元素 fsp 从链表移除。仅设置其前后两项的指针，不释放该元素（即保持其 st_va 为有值，不允许其被 alloc_fat_space() 取到）。</p>
-<p>该函数仅用于内部处理，不应当被内存映射部分之外的部分调用。</p>
-<h4 id="insert_spacest_va-size"><a class="markdownIt-Anchor" href="#insert_spacest_va-size"></a> insert_space(st_va, size)</h4>
-<p>插入一段空闲空间，从 st_va 开始，大小为 size。</p>
-<p>首先遍历寻找在该空间之前且与该空间相邻的空闲空间元素 fspace，如果有，则调用 remove_fat_space_list() 将其移除，递归调用 insert_space() 插入这两段空闲空间之和的空间后，将 fspace 释放（设 st_va 为 0）并返回。</p>
-<p>再遍历寻找在该空间之后且与该空间相邻的空闲空间元素 fspace，如果有，则调用 remove_fat_space_list() 将其移除，递归调用 insert_space() 插入这两段空闲空间之和的空间后，将 fspace 释放（设 st_va 为 0）并返回。</p>
-<p>如果上述两个查找完都没有，代表当前空间已经是可以融合的最大空闲空间，则调用 insert_head_fat_space_list() 将该空闲空间对应的元素插入链表。</p>
-<h4 id="is_clus_mappedclus-va"><a class="markdownIt-Anchor" href="#is_clus_mappedclus-va"></a> is_clus_mapped(clus, va)</h4>
-<p>有两个用途，首先用于检查簇号为 clus 的簇是否被映射到内存，如果是，返回 1，否则返回 0。检查方式是遍历整个链表查找。</p>
-<p>其次用于获取簇号为 clus 的簇被映射到的虚拟地址 va。如果传入的指针 va 不为零，则将其对应的值赋值为对应的虚拟地址。</p>
-<h4 id="get_clus_space_infoclus"><a class="markdownIt-Anchor" href="#get_clus_space_infoclus"></a> get_clus_space_info(clus)</h4>
-<p>用于在链表中查找簇号为 clus 的簇对应的链表元素，并返回其指针，我们默认调用这个函数都应该在 clus 已经被映射时调用。用于获取一些相关信息。</p>
-<h4 id="free_clusclus"><a class="markdownIt-Anchor" href="#free_clusclus"></a> free_clus(clus)</h4>
-<p>用于将簇号为 clus 的簇映射的空间释放。</p>
-<p>如果 clus 未映射，会报错。</p>
-<p>如果未找到，会返回 -E_FAT_NOT_FOUND。</p>
-<p>正常找到会返回 0。</p>
-<h4 id="debug_print_fspace"><a class="markdownIt-Anchor" href="#debug_print_fspace"></a> debug_print_fspace()</h4>
-<p>用于调试。输出所有链表中的元素及其信息。</p>
-<h4 id="alloc_fat_file_spaceclus-bysize-va"><a class="markdownIt-Anchor" href="#alloc_fat_file_spaceclus-bysize-va"></a> alloc_fat_file_space(clus, bysize, va)</h4>
-<p>为簇号为 clus 的簇开辟一个链表元素，即开辟一段空间用于映射该簇，bysize 是需要开辟的大小，在实际使用中只会设置为一个簇的大小。</p>
-<p>如果指针 va 非零，其对应的值会被设为映射到的内存的初始地址。</p>
-<p>如果这段空间已满，返回 -E_FAT_VA_FULL。</p>
-<h4 id="fat_space_init"><a class="markdownIt-Anchor" href="#fat_space_init"></a> fat_space_init()</h4>
-<p>用于内存映射部分的初始化。</p>
-<p>将所有元素的 st_va 设为 0。</p>
-<p>将头的下一项设为尾，尾的上一项设为头。</p>
-<p>插入一个从 FATVAMIN 到 FATVAMAX 的链表元素，代表整个用于映射的空间都是空的。</p>
-<h3 id="簇管理"><a class="markdownIt-Anchor" href="#簇管理"></a> 簇管理</h3>
-<p>簇管理部分主要封装了对簇进行读写的函数和簇号检测的函数。</p>
-<h4 id="is_bad_clusterclus"><a class="markdownIt-Anchor" href="#is_bad_clusterclus"></a> is_bad_cluster(clus)</h4>
-<p>检测簇号 clus 是否合法，即大于等于 2 且小于等于最大簇数，如果不合法则返回 1，否则返回 0。</p>
-<h4 id="read_disk_fat_clusterclus-buf"><a class="markdownIt-Anchor" href="#read_disk_fat_clusterclus-buf"></a> read_disk_fat_cluster(clus, buf)</h4>
-<p>将磁盘中簇号为 clus 的簇中的内容读取到内存空间中 buf 开始的一段内存中，不检查内存空间是否合法，会检测簇号的合法性，以及检测簇对应的 FAT 表项是否标记为空（代表簇空闲），如果簇号不合法，返回 -E_FAT_BAD_CLUSTER，如果簇被标记为空，返回 -E_FAT_ACCESS_FREE_CLUS。</p>
-<p>合法情况下，调用 ide_read 读取磁盘，并返回 0。</p>
-<h4 id="write_disk_fat_clusterclus-buf"><a class="markdownIt-Anchor" href="#write_disk_fat_clusterclus-buf"></a> write_disk_fat_cluster(clus, buf)</h4>
-<p>将内存空间 buf 开始的一个簇大小的内容写入到磁盘中簇号为 clus 的簇中，不检查内存空间是否合法，会检测簇号的合法性，以及检测簇对应的 FAT 表项是否标记为空（代表簇空闲），如果簇号不合法，返回 -E_FAT_BAD_CLUSTER，如果簇被标记为空，返回 -E_FAT_ACCESS_FREE_CLUS。</p>
-<p>合法情况下，调用 ide_write 写入磁盘，并返回 0。</p>
-<h4 id="debug_print_cluster_disk_dataclus"><a class="markdownIt-Anchor" href="#debug_print_cluster_disk_dataclus"></a> debug_print_cluster_disk_data(clus)</h4>
-<p>将一个簇中的所有内容输出，用于调试。以字节为单位输出，一行 16 个字节。</p>
-<h3 id="根目录管理"><a class="markdownIt-Anchor" href="#根目录管理"></a> 根目录管理</h3>
-<p>由于在 FAT16 中，根目录不占用数据区，是单独区分出来的一段磁盘空间，也不被 FAT 表所记录，因此在 FAT 文件系统中，也将其单独管理。</p>
-<p>根目录的内容会在文件系统初始化时被读入，固定映射到 FATROOTVA 开始的一段内存中。</p>
-<p>对于根目录的访问和读写通过调用 read_disk_fat_cluster() 和 write_disk_fat_cluster() 实现，两个函数会首先特判，如果 clus == 0 即访问了 0 号簇，即视为访问根目录，会读写整个根目录到 FATROOTVA 部分的内存。</p>
-<p>在 is_clus_mapped() 中，会首先特判 clus == 0 的情况，该情况下永远返回 1，因为根目录在初始化时已经被映射，并设置（如果需要）va 为 FATROOTVA。</p>
-<p>由于内存映射链表中使用 clus = 0 来标注链表元素为空，且内存映射链表管理的一段内存和用于映射根目录的内存互不相同，因此不允许调用内存映射相关函数管理根目录，如果传入 clus 参数为 0 ，会报错。</p>
-<h3 id="fat-表管理"><a class="markdownIt-Anchor" href="#fat-表管理"></a> FAT 表管理</h3>
-<p>本部分主要提供了对于 FAT 表项的读写操作，以及由此延伸出的磁盘空间以簇为单位的分配和回收操作，封装了动态变大变小的函数，便于文件的大小重定。</p>
-<h4 id="is_free_clusterclus"><a class="markdownIt-Anchor" href="#is_free_clusterclus"></a> is_free_cluster(clus)</h4>
-<p>检查簇号为 clus 的簇是否为空簇，通过检查 FAT 表项是否为 0 完成，如果空返回 1，否则返回 0。</p>
-<h4 id="get_fat_entryclus-pentry_val"><a class="markdownIt-Anchor" href="#get_fat_entryclus-pentry_val"></a> get_fat_entry(clus, pentry_val)</h4>
-<p>通过访问 FAT 表，获取簇号为 clus 的簇对应的表项值，并存储在 pentry_val 的内存空间中，正常运行返回 0。</p>
-<p>执行中会同步读该簇对应的的其他 FAT 表项，如果不相同会返回 -E_FAT_ENT_DIFF。</p>
-<h4 id="set_fat_entryclus-entry_val"><a class="markdownIt-Anchor" href="#set_fat_entryclus-entry_val"></a> set_fat_entry(clus, entry_val)</h4>
-<p>通过访问 FAT 表，将获取簇号为 clus 的簇对应的表项值 entry_val 写入到 FAT 表中，如果正常运行返回 0。</p>
-<p>执行中会同步写该簇对应的的其他 FAT 表项。</p>
-<h4 id="debug_print_fat_entryclus"><a class="markdownIt-Anchor" href="#debug_print_fat_entryclus"></a> debug_print_fat_entry(clus)</h4>
-<p>输出对应的 FAT 表项内容，调试用。</p>
-<h4 id="search_and_get_fat_entrypclus"><a class="markdownIt-Anchor" href="#search_and_get_fat_entrypclus"></a> search_and_get_fat_entry(pclus)</h4>
-<p>通过从头遍历的方式获取一个空簇，并将簇号设置在 pclus 对应的内存处，正常运行返回 0。如果簇已满返回 -E_FAT_CLUSTER_FULL。</p>
-<h4 id="alloc_fat_cluster_entriespclus-count"><a class="markdownIt-Anchor" href="#alloc_fat_cluster_entriespclus-count"></a> alloc_fat_cluster_entries(pclus, count)</h4>
-<p>申请 count 个簇，将其设置为相连（最后一个的表项设置为 0xFFFF）并将首个簇的值存储在 pclus 对应的地址处。正常运行返回 0。</p>
-<h4 id="expand_fat_cluster_entriespclus-count-pendclus"><a class="markdownIt-Anchor" href="#expand_fat_cluster_entriespclus-count-pendclus"></a> expand_fat_cluster_entries(pclus, count, pendclus)</h4>
-<p>通过读取 pclus 指向的簇对应的一串簇，在其尾部拓展 count 个簇，如果设置了 pendclus，将最尾部的簇设置到 pendclus 对应的内存处。用于扩展文件大小。正常运行返回 0。</p>
-<h4 id="free_fat_cluster_entriesclus"><a class="markdownIt-Anchor" href="#free_fat_cluster_entriesclus"></a> free_fat_cluster_entries(clus)</h4>
-<p>释放一串簇，即从簇号 clus 开始的，直到 FAT 表项为 0xFFFF 的所有簇，将这些簇对应表项设为 0x0。正常运行返回 0。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="John Doe">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/07/05/OS-Lab6/" class="post-title-link" itemprop="url">OS Lab6</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:15:37" itemprop="dateModified" datetime="2023-07-05T11:15:37+08:00">2023-07-05</time>
               </span>
-              <span class="post-meta-item-text">Posted on</span>
-              
-
-              <time title="Created: 2023-07-05 11:14:09 / Modified: 11:15:43" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:09+08:00">2023-07-05</time>
-            </span>
 
           
 
@@ -510,7 +258,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab5/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/15/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -524,7 +272,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Lab5/" class="post-title-link" itemprop="url">OS Lab5</a>
+            <a href="/2023/05/15/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -533,10 +281,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:14:07 / Modified: 11:15:30" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:07+08:00">2023-07-05</time>
+              <time title="Created: 2023-05-15 09:32:39" itemprop="dateCreated datePublished" datetime="2023-05-15T09:32:39+08:00">2023-05-15</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:15:28" itemprop="dateModified" datetime="2023-07-05T11:15:28+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -645,7 +399,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab4/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/04/27/lab4%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -659,7 +413,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Lab4/" class="post-title-link" itemprop="url">OS Lab4</a>
+            <a href="/2023/04/27/lab4%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -668,10 +422,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:14:04 / Modified: 11:15:15" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:04+08:00">2023-07-05</time>
+              <time title="Created: 2023-04-27 15:48:29" itemprop="dateCreated datePublished" datetime="2023-04-27T15:48:29+08:00">2023-04-27</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:15:12" itemprop="dateModified" datetime="2023-07-05T11:15:12+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -763,7 +523,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab3/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/04/07/lab3%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -777,7 +537,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Lab3/" class="post-title-link" itemprop="url">OS Lab3</a>
+            <a href="/2023/04/07/lab3%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -786,10 +546,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:14:01 / Modified: 11:15:07" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:01+08:00">2023-07-05</time>
+              <time title="Created: 2023-04-07 14:51:52" itemprop="dateCreated datePublished" datetime="2023-04-07T14:51:52+08:00">2023-04-07</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:14:57" itemprop="dateModified" datetime="2023-07-05T11:14:57+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -869,7 +635,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab1/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/03/07/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -883,7 +649,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Lab1/" class="post-title-link" itemprop="url">OS Lab1</a>
+            <a href="/2023/03/07/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -892,10 +658,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:13:59 / Modified: 11:14:49" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:59+08:00">2023-07-05</time>
+              <time title="Created: 2023-03-07 18:44:23" itemprop="dateCreated datePublished" datetime="2023-03-07T18:44:23+08:00">2023-03-07</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:14:43" itemprop="dateModified" datetime="2023-07-05T11:14:43+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -953,7 +725,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab0/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/03/02/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -967,7 +739,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/OS-Lab0/" class="post-title-link" itemprop="url">OS Lab0</a>
+            <a href="/2023/03/02/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">Untitled</a>
         </h2>
 
         <div class="post-meta">
@@ -976,10 +748,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-07-05 11:13:53 / Modified: 11:14:34" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:53+08:00">2023-07-05</time>
+              <time title="Created: 2023-03-02 10:52:53" itemprop="dateCreated datePublished" datetime="2023-03-02T10:52:53+08:00">2023-03-02</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:14:37" itemprop="dateModified" datetime="2023-07-05T11:14:37+08:00">2023-07-05</time>
+              </span>
 
           
 
@@ -1068,142 +846,11 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/Test/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="John Doe">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/07/05/Test/" class="post-title-link" itemprop="url">Test</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-              
-
-              <time title="Created: 2023-07-05 10:58:28 / Modified: 11:05:21" itemprop="dateCreated datePublished" datetime="2023-07-05T10:58:28+08:00">2023-07-05</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>This is a <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>e</mi><mi>s</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">test</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord mathnormal">s</span><span class="mord mathnormal">t</span></span></span></span>.<br />
-Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span><br />
-111 Aha! <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">E = mc^{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>.</p>
-<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mo fence="true">(</mo><mi>β</mi><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup><mo>+</mo><mi>c</mi><mrow><mo fence="true">(</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mn>3</mn></munderover><msub><mi>α</mi><mi>n</mi></msub><msub><mi>p</mi><mi>n</mi></msub><mo fence="true">)</mo></mrow><mo fence="true">)</mo></mrow><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>i</mi><mi mathvariant="normal">ℏ</mi><mfrac><mrow><mi mathvariant="normal">∂</mi><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mrow><mi mathvariant="normal">∂</mi><mi>t</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\left(\beta m c^2 + c \left(\sum_{n=1}^3\alpha_n p_n\right)\right) \psi(x,t)
-= i\hbar \frac{\partial \psi(x,t)}{\partial t}
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.068226em;vertical-align:-1.267113em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641079999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.882887em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.267113em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.0037em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.113em;vertical-align:-0.686em;"></span><span class="mord mathnormal">i</span><span class="mord">ℏ</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal">t</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="John Doe">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2023/07/05/hello-world/" class="post-title-link" itemprop="url">Hello World</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2023-07-05 10:49:27" itemprop="dateCreated datePublished" datetime="2023-07-05T10:49:27+08:00">2023-07-05</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
 
 
 
@@ -1268,7 +915,7 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">16</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>

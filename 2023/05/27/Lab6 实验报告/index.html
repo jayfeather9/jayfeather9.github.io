@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="思考题  Thinking 6.1 应当如下修改：（仅贴出修改部分，即switch内的代码） 具体来说，交换父子部分的代码即可。 123456789101112131415switch (fork()) &amp;#123;   case -1:    break;  case 0: &#x2F;* son process - as writer *&#x2F;     close(fildes[0]); &#x2F;* close">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://example.com/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="思考题  Thinking 6.1 应当如下修改：（仅贴出修改部分，即switch内的代码） 具体来说，交换父子部分的代码即可。 123456789101112131415switch (fork()) &amp;#123;   case -1:    break;  case 0: &#x2F;* son process - as writer *&#x2F;     close(fildes[0]); &#x2F;* close">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-05-27T13:58:58.576Z">
+<meta property="article:modified_time" content="2023-07-05T03:15:37.546Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title> | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/05/27/Lab6%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2023-05-27 21:58:58" itemprop="dateCreated datePublished" datetime="2023-05-27T21:58:58+08:00">2023-05-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:15:37" itemprop="dateModified" datetime="2023-07-05T11:15:37+08:00">2023-07-05</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-61"><a class="markdownIt-Anchor" href="#thinking-61"></a> Thinking 6.1</h3>
+<p>应当如下修改：（仅贴出修改部分，即switch内的代码）</p>
+<p>具体来说，交换父子部分的代码即可。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (fork()) &#123; </span><br><span class="line">  <span class="keyword">case</span> <span class="number">-1</span>:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> <span class="number">0</span>: <span class="comment">/* son process - as writer */</span> </span><br><span class="line">    close(fildes[<span class="number">0</span>]); <span class="comment">/* close read end */</span></span><br><span class="line">    write(fildes[<span class="number">1</span>], <span class="string">&quot;Hello world\n&quot;</span>, <span class="number">12</span>); <span class="comment">/* write data to pipe */</span></span><br><span class="line">    close(fildes[<span class="number">1</span>]); <span class="comment">/* close write end */</span></span><br><span class="line">    <span class="built_in">exit</span>(EXIT_SUCCESS); <span class="comment">/* exit */</span></span><br><span class="line">  <span class="keyword">default</span>: <span class="comment">/* father process - as reader */</span> </span><br><span class="line">    close(fildes[<span class="number">1</span>]); <span class="comment">/* close write end */</span></span><br><span class="line">    read(fildes[<span class="number">0</span>], buf, <span class="number">100</span>);  <span class="comment">/* read data from pipe */</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;child-process read:%s&quot;</span>,buf); </span><br><span class="line">    close(fildes[<span class="number">0</span>]);  <span class="comment">/* close read end */</span></span><br><span class="line">    <span class="built_in">exit</span>(EXIT_SUCCESS); <span class="comment">/* exit */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-62"><a class="markdownIt-Anchor" href="#thinking-62"></a> Thinking 6.2</h3>
+<p>dup 函数的作用的作用是把一个文件描述符的内容映射给另一个文件描述符。</p>
+<p>比如有一个管道，各个文件描述符映射次数为 p[0] = p[1] = 1，pipe = 2。</p>
+<p>如果此时要映射读端，会先 p[0]<ins>，再 pipe</ins>。</p>
+<p>如果这两个操作之间发生中断，则会导致 p[0] == pipe。此时就会错误的认为写端关闭，出现错误。</p>
+<h3 id="thinking-63"><a class="markdownIt-Anchor" href="#thinking-63"></a> Thinking 6.3</h3>
+<p>准确来说，MOS <strong>通过关中断的方式让系统调用不被中断</strong>，因而对于用户而言，系统调用期间不会发生中断，可以被视为是原子的。</p>
+<p>具体来说，代码里涉及到了两个宏，会将 CP0_STATUS 寄存器的 STATUS_CU0 位置位，从而实现开关中断的效果，而每次触发系统调用会首先调用相关宏关中断，结束后再开中断。</p>
+<p><em>注：这种方式显然不适用于多核的情况，多核时需要采用硬件提供的操作来进行一些原子操作，或者使用互斥锁等方式保证进程同步。</em></p>
+<h3 id="thinking-64"><a class="markdownIt-Anchor" href="#thinking-64"></a> Thinking 6.4</h3>
+<ul>
+<li>可以。我们通过验证 pageref(fd) == pager(pipe) 来检测管道是否关闭，如果改变上述解除映射顺序，就能一直保证 pageref(fd) &lt; pageref(pipe)，不会出现错误。</li>
+<li>可以，通过先将 pageref(pipe)++ ，再将 pageref(fd)++的方式，保证了任何时候都有pageref(fd) &lt; pageref(pipe)，不会出现错误。</li>
+</ul>
+<h3 id="thinking-65"><a class="markdownIt-Anchor" href="#thinking-65"></a> Thinking 6.5</h3>
+<ul>
+<li>打开文件的过程包括：用户调用用户库的 open() 函数，进而调用 fsipc_open() 函数向文件管理进程发送 ipc 请求，文件管理进程通过调用 serv_open() 进而调用相关函数，经过查找路径等过程将文件打开，存储文件描述符并通过 ipc 返回给用户。</li>
+<li>打开 ELF 是通过 load_icode() 函数完成。函数中解析出每个段的段头 ph 和数据在内存中的起始位置 bin，再通过 elf_load_seg() 加载各个程序段，相关的内存拷贝和映射工作由 load_icode_mapper() 函数进行，通过调用相关的内存处理函数进行映射。</li>
+<li>在 elf_load_seg() 函数中，先将 ELF 文件中已有的数据映射进内存，完成之后，还会继续调用 map_page() （即 load_icode_mapper() 函数），将全 0 的页面映射到后续的部分，使得大小能够与 ELF 中设置的大小匹配，保证了 .bss 中的变量也能有足够的空间，且初始化为 0 。</li>
+</ul>
+<h3 id="thinking-66"><a class="markdownIt-Anchor" href="#thinking-66"></a> Thinking 6.6</h3>
+<p>在 usr/init.c 中，调用了 opencons() 函数，打开一个可读写的文件描述符 fd，由于此时并没有任何文件描述符被 alloc ，因此这是第一个即 0 号文件描述符。之后调用 dup(0, 1) 将 0 号复制到 1 号，从而实现了将其定为标准输入和标准输出。</p>
+<h3 id="thinking-67"><a class="markdownIt-Anchor" href="#thinking-67"></a> Thinking 6.7</h3>
+<p>MOS 中的 shell 命令都是外部命令。</p>
+<p>而 cd 命令需要改变当前的进程所在目录即 pwd，如果在外部更改，一旦 fork 了新进程，进程的所在目录会回到根目录下，不能实现正确的 cd 效果。因此在外部无法正确实现 cd，只能在内部实现。</p>
+<h3 id="thinking-68"><a class="markdownIt-Anchor" href="#thinking-68"></a> Thinking 6.8</h3>
+<ul>
+<li>可以观察到两次 spawn，分别对应 ls 和 cat 两个命令。</li>
+<li>可以观察到四次进程销毁，分别对应开始时执行命令 fork 出的子 shell 进程，ls 和 cat 两个命令以及管道 fork 出的子进程。</li>
+</ul>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<ul>
+<li>本实验一方面的主要难点在于 pipe 相关函数的思维量，需要一点点思考来使代码能够适应不同初始情况下对管道信息的维护，主要是对读位置和写位置的处理等，需要全面覆盖到各种情况，因此不能马虎随便写。</li>
+<li>此外关于管道关闭判断和 pageref 顺序导致的问题，已经在指导书和思考题中说明，并没有太高难度，主要是明确对中断的正确理解即可。</li>
+<li>到 spawn 函数部分，则需要充分理解包括 lab2、lab3、lab4、lab5 中的相关知识，熟练使用相关系统调用和其他函数，然后按照提示进行补全即可。</li>
+<li>sh 部分，理解重定向的实现方式是通过映射到文件描述符 0 和 1 的原理，在此基础上调用 open 和 dup 等函数即可。</li>
+</ul>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>Lab6 的完成，有一种为半个多学期的努力画上句点的感觉。在看到（虽然大多数代码都不是）自己写的操作系统终于能跑出一个像样的 shell 界面时，还是很有成就感的。相应的，Lab6 的相关内容也显得综合性较强，如果对前面的 Lab 有足够的了解其实实现起来相对轻松，但是如果知识有漏洞可能就不会那么顺利。</p>
+<p>祝贺操作系统实验完结！</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/05/15/lab5%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="prev" title="">
+      <i class="fa fa-chevron-left"></i> 
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/06/15/lab5%E6%8C%91%E6%88%98%E6%80%A7%E6%8A%A5%E5%91%8A/" rel="next" title="">
+       <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-61"><span class="nav-number">1.1.</span> <span class="nav-text"> Thinking 6.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-62"><span class="nav-number">1.2.</span> <span class="nav-text"> Thinking 6.2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-63"><span class="nav-number">1.3.</span> <span class="nav-text"> Thinking 6.3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-64"><span class="nav-number">1.4.</span> <span class="nav-text"> Thinking 6.4</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-65"><span class="nav-number">1.5.</span> <span class="nav-text"> Thinking 6.5</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-66"><span class="nav-number">1.6.</span> <span class="nav-text"> Thinking 6.6</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-67"><span class="nav-number">1.7.</span> <span class="nav-text"> Thinking 6.7</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-68"><span class="nav-number">1.8.</span> <span class="nav-text"> Thinking 6.8</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%BE%E7%82%B9%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text"> 难点分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E4%BD%93%E4%BC%9A"><span class="nav-number">3.</span> <span class="nav-text"> 实验体会</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

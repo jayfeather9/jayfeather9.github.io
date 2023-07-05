@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="思考题  Thinking 1.1 向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。 使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下： 123456789101112131415161718192021222300000000 &lt;main&gt;:   0:	27bdffe0 	addiu	sp,">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://example.com/2023/03/07/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="思考题  Thinking 1.1 向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。 使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下： 123456789101112131415161718192021222300000000 &lt;main&gt;:   0:	27bdffe0 	addiu	sp,">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-03-07T10:44:23.018Z">
+<meta property="article:modified_time" content="2023-07-05T03:14:43.649Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/03/07/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title> | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hexo</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/03/07/Lab1%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="John Doe">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2023-03-07 18:44:23" itemprop="dateCreated datePublished" datetime="2023-03-07T18:44:23+08:00">2023-03-07</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-07-05 11:14:43" itemprop="dateModified" datetime="2023-07-05T11:14:43+08:00">2023-07-05</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
+<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
+<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
+<p>使用我们编写的readelf 解析 target/mos 得到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
+<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
+<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
+<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
+<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
+<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
+<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
+<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
+<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
+<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
+<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
+<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
+<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/03/02/Lab0%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="prev" title="">
+      <i class="fa fa-chevron-left"></i> 
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/04/07/lab3%20%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A/" rel="next" title="">
+       <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-11"><span class="nav-number">1.1.</span> <span class="nav-text"> Thinking 1.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-12"><span class="nav-number">1.2.</span> <span class="nav-text"> Thinking 1.2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-13"><span class="nav-number">1.3.</span> <span class="nav-text"> Thinking 1.3</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%BE%E7%82%B9%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text"> 难点分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E9%92%88%E5%9F%BA%E7%A1%80"><span class="nav-number">2.1.</span> <span class="nav-text"> 指针基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#linker-script"><span class="nav-number">2.2.</span> <span class="nav-text"> Linker Script</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#printk"><span class="nav-number">2.3.</span> <span class="nav-text"> printk()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E4%BD%93%E4%BC%9A"><span class="nav-number">3.</span> <span class="nav-text"> 实验体会</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">John Doe</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">John Doe</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
