@@ -20,20 +20,15 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="操作系统实验课 Lab3 实验报告">
-<meta property="og:type" content="article">
-<meta property="og:title" content="OS Lab3">
-<meta property="og:url" content="http://example.com/2023/07/05/OS-Lab3/index.html">
+  <meta property="og:type" content="website">
+<meta property="og:title" content="Hexo">
+<meta property="og:url" content="http://example.com/archives/2023/page/2/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="操作系统实验课 Lab3 实验报告">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2023-07-05T03:14:01.000Z">
-<meta property="article:modified_time" content="2023-07-05T06:46:49.364Z">
 <meta property="article:author" content="John Doe">
-<meta property="article:tag" content="OS">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/2023/07/05/OS-Lab3/">
+<link rel="canonical" href="http://example.com/archives/2023/page/2/">
 
 
 <script id="page-configurations">
@@ -41,12 +36,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : true,
+    isPost : false,
     lang   : 'en'
   };
 </script>
 
-  <title>OS Lab3 | Hexo</title>
+  <title>Archive | Hexo</title>
   
 
 
@@ -186,155 +181,54 @@
         <div class="content-wrap">
           
 
-          <div class="content post posts-expand">
+          <div class="content archive">
             
 
-    
   
   
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2023/07/05/OS-Lab3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="John Doe">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Hexo">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-          OS Lab3
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-              
-
-              <time title="Created: 2023-07-05 11:14:01 / Modified: 14:46:49" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:01+08:00">2023-07-05</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">In</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
-                </span>
-            </span>
-
-          
-            <span class="post-meta-item" title="Views">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-users"></i>
-              </span>
-              <span class="post-meta-item-text">Views: </span>
-              <span class="firestore-visitors-count"></span>
-            </span>
-            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-eye"></i>
-              </span>
-              <span class="post-meta-item-text">Views: </span>
-              <span id="busuanzi_value_page_pv"></span>
-            </span>
-            <div class="post-description">操作系统实验课 Lab3 实验报告</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
+  
+  <div class="post-block">
+    <div class="posts-collapse">
+      <div class="collection-title">
+        <span class="collection-header">Um..! 11 posts in total. Keep on posting.</span>
+      </div>
 
       
-        <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-31"><a class="markdownIt-Anchor" href="#thinking-31"></a> Thinking 3.1</h3>
-<p>实验中 UVPT 往上到 ULIM 之间为进程自己的页表，即 UVPT 是页表基地址。这里访问 pgdir[PDX(UVPT)] 即为页目录中页表基地址对应的页目录项，将进程页目录的物理地址赋值到该项，即可保证能正确通过页表项虚拟地址找到物理地址。（这里保证了页目录中自映射的页目录项有效，有效即置位 PTE_V）</p>
-<h3 id="thinking-32"><a class="markdownIt-Anchor" href="#thinking-32"></a> Thinking 3.2</h3>
-<p>map_page 的参数 data 来自 elf_load_seg 传入的参数 data，调用 elf_load_seg 时传入的 data 是加载 ELF 时的数据地址 struct Env *e。这里这个参数用于在 map_page 中获取当前需要插入新页的页目录地址和 asid，因此不能省略。</p>
-<h3 id="thinking-33"><a class="markdownIt-Anchor" href="#thinking-33"></a> Thinking 3.3</h3>
-<p>可以根据页面加载起始地址位置和加载内容大致分为四类：</p>
-<ul>
-<li>从页面中间加载一部分程序段内容（到页面结尾或页面中间）</li>
-<li>从页面开始加载一部分程序段内容（到页面结尾或页面中间）</li>
-<li>从页面开始加载一部分程序段内容后，余下部分填入0</li>
-<li>从页面开始填入0（到页面结尾或页面中间）</li>
-</ul>
-<p>不论从页面开始还是从页面中间，都需要新分一页来填入内容。</p>
-<h3 id="thinking-34"><a class="markdownIt-Anchor" href="#thinking-34"></a> Thinking 3.4</h3>
-<p>这里的EPC是给CPU做处理的PC地址，CPU使用的是虚拟地址。</p>
-<h3 id="thinking-35"><a class="markdownIt-Anchor" href="#thinking-35"></a> Thinking 3.5</h3>
-<ul>
-<li>handle_int 在 kern/genex.S 中实现</li>
-<li>handle_mod 在 kern/genex.S 中跳转到 do_tlb_mod，在 kern/tlbex.c 中实现</li>
-<li>handle_tlb 在 kern/genex.S 中跳转到 do_tlb_refill，在 kern/tlb_asm.S 中实现</li>
-<li>handle_sys 在 kern/genex.S 中跳转到 do_syscall，在 lab4 中会实现</li>
-</ul>
-<h3 id="thinking-36"><a class="markdownIt-Anchor" href="#thinking-36"></a> Thinking 3.6</h3>
-<p>enable_irq 用于开启中断：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">LEAF(enable_irq) // declare leaf function &quot;enable_irq&quot;</span><br><span class="line">	// CU0 = 1 means Coprocessor 0 (CP0) is available</span><br><span class="line">	// IM4 = 1 means CP0 respond to 4th interruption</span><br><span class="line">	// IEc = 1 means allow interruption</span><br><span class="line">	li      t0, (STATUS_CU0 | STATUS_IM4 | STATUS_IEc) // set t0 to these 3 status bits</span><br><span class="line">	mtc0    t0, CP0_STATUS // set these 3 status bits to CP0 status register</span><br><span class="line">	jr      ra // return</span><br><span class="line">END(enable_irq)</span><br></pre></td></tr></table></figure>
-<p>timer_irq 用于禁止中断并跳转到 schedule：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">timer_irq:</span><br><span class="line">	sw      zero, (KSEG1 | DEV_RTC_ADDRESS | DEV_RTC_INTERRUPT_ACK) // write 0 to RTC_INTERRUPT_ACK to avoid interruption</span><br><span class="line">	li      a0, 0			// set first parameter to 0 (yield = 0)</span><br><span class="line">	j       schedule	// call schedule()</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-37"><a class="markdownIt-Anchor" href="#thinking-37"></a> Thinking 3.7</h3>
-<p>硬件按照时钟每次产生时钟中断时：</p>
-<ul>
-<li>根据 exception_handlers 的指定，是时钟中断，调用 handle_int</li>
-<li>检查是否允许所有中断和是否允许时钟中断，如果允许，跳转到 timer_irq 处理时钟中断</li>
-<li>暂时禁止中断，调用 schedule() ，参数 yield = 0</li>
-<li>如果未调度进程 / 当前进程时间片耗尽 / 当前进程被阻塞或退出则切换进程</li>
-<li>调度结束，结束中断处理，允许中断</li>
-</ul>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<ul>
-<li>env_free_list 是 LIST，对应 field 是 env_link，而 env_sched_list 是 TAILQ，对应 field 是env_sched_link，不能混用。</li>
-<li>env_alloc 中对没有空闲进程或调用的函数运行错误等情况一定要返回错误值，类似的，所有 int 返回值的函数对于函数内任何可能运行错误的地方都要加以判断并返回对应错误值，调用返回 int 的函数时都要判断返回值并判断是否返回错误值（可以使用 try() ）</li>
-<li>有些时候调用函数时会传入 int 等类型作为地址使用，这时函数要求的类型可能是 void *，如果要消除 warning 可以考虑加上类型转换再传入函数</li>
-<li>set a to b 的意思是 a = b，即把 b 的值赋值给 a。</li>
-<li>没有 parent 的 env，parent_id 是 0。</li>
-</ul>
-<h2 id="实验感想"><a class="markdownIt-Anchor" href="#实验感想"></a> 实验感想</h2>
-<p>lab3 主要学习了进程，核心内容是对于 PCB 的操作处理，同时还简单引入了异常处理的初步流程，但是涉及到异常处理的部分更多是复制粘贴代码，后续还需要在这个基础上再多多了解一下异常处理流程（但其实完成 lab4 的学习之后已经了解了不少异常处理相关的内容）。</p>
-<p>进程本身调度想必是很复杂的内容，在考前还需要多多复习练习读代码。</p>
-
+    <div class="collection-year">
+      <span class="collection-header">2023</span>
     </div>
 
-    
-    
-    
+  <article itemscope itemtype="http://schema.org/Article">
+    <header class="post-header">
 
-      <footer class="post-footer">
-          <div class="post-tags">
-              <a href="/tags/OS/" rel="tag"># OS</a>
-          </div>
+      <div class="post-meta">
+        <time itemprop="dateCreated"
+              datetime="2023-07-05T10:49:27+08:00"
+              content="2023-07-05">
+          07-05
+        </time>
+      </div>
 
-        
+      <div class="post-title">
+          <a class="post-title-link" href="/2023/07/05/hello-world/" itemprop="url">
+            <span itemprop="name">Hello World!</span>
+          </a>
+      </div>
 
-
-        
-    <div class="post-nav">
-      <div class="post-nav-item">
-    <a href="/2023/07/05/OS-Lab1/" rel="prev" title="OS Lab1">
-      <i class="fa fa-chevron-left"></i> OS Lab1
-    </a></div>
-      <div class="post-nav-item">
-    <a href="/2023/07/05/OS-Lab4/" rel="next" title="OS Lab4">
-      OS Lab4 <i class="fa fa-chevron-right"></i>
-    </a></div>
-    </div>
-      </footer>
-    
+    </header>
   </article>
+
+
+    </div>
+  </div>
   
   
   
+
+  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" href="/archives/2023/"><i class="fa fa-angle-left" aria-label="Previous page"></i></a><a class="page-number" href="/archives/2023/">1</a><span class="page-number current">2</span>
+  </nav>
 
 
 
@@ -386,7 +280,6 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-31"><span class="nav-number">1.1.</span> <span class="nav-text"> Thinking 3.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-32"><span class="nav-number">1.2.</span> <span class="nav-text"> Thinking 3.2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-33"><span class="nav-number">1.3.</span> <span class="nav-text"> Thinking 3.3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-34"><span class="nav-number">1.4.</span> <span class="nav-text"> Thinking 3.4</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-35"><span class="nav-number">1.5.</span> <span class="nav-text"> Thinking 3.5</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-36"><span class="nav-number">1.6.</span> <span class="nav-text"> Thinking 3.6</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#thinking-37"><span class="nav-number">1.7.</span> <span class="nav-text"> Thinking 3.7</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9A%BE%E7%82%B9%E5%88%86%E6%9E%90"><span class="nav-number">2.</span> <span class="nav-text"> 难点分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E6%84%9F%E6%83%B3"><span class="nav-number">3.</span> <span class="nav-text"> 实验感想</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
