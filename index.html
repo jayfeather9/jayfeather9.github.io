@@ -212,7 +212,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:14:16 / Modified: 11:15:55" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:16+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:14:16 / Modified: 11:36:38" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:16+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -233,207 +242,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>实现了 MOS 操作系统对于 FAT16 磁盘的支持，支持长文件名的读写（不支持 ASCII 以外的 UNICODE 字符），支持有少量限制的读写其他操作系统读写过的 FAT16 磁盘。</p>
-<h2 id="思路综述"><a class="markdownIt-Anchor" href="#思路综述"></a> 思路综述</h2>
-<p>核心思路主要是在读明白 FAT 规格书的基础上，重写 fs/fs.c 为 fs/fatfs.c，采用了相对较简单的套用原有代码思路的方法，对照着原来 fs/fs.c 的各个函数逐个实现（一部分函数因不需要而被删除，另一部分被替代），对于构造不同的地方通过封装操作函数进行处理，如此操作后，保证新函数和原有函数效果相同，再根据原有的函数，创建新的 fs/fatserv.c (fs/serv.c) user/lib/fatfile.c (user/lib/file.c) user/lib/fatipc.c (user/lib/fsipc.c) 即可。对于一个适当实现的情况，后续几个文件应当只需要进行一些简单修改即可适配。</p>
-<p>最大的难点在于：</p>
-<ul>
-<li>通读并理解全英文的 FAT 规格书（笔者在实际理解中搭配了部分 CSDN 博客与实际实践）</li>
-<li>在操作中正确读取和处理 FatBPB 中的信息，正确维护 FAT 表，管理内存映射</li>
-</ul>
-<p>本实现基于原有的文件系统，新增了 FAT 文件系统进程，恒为 2 号进程（即第三个被启动的进程，原文件系统仍保持为第二个被启动的进程即 1 号进程）。修改了 Makefile 文件以实现创建并挂载 FAT16 格式磁盘在 DISKNO = 1 的磁盘位。</p>
-<p>使用时，操作与原文件系统相同。由于考虑到实际各个文件系统均为不同磁盘的根目录，设置为 /root1 /root2 稍有不合理之处，因此改用了以下调用方式：</p>
-<ul>
-<li>打开文件、创建文件和删除文件需要调用 FAT 文件系统的函数 fat_open()、fat_create() 和 fat_remove()。前两者和原有的 open() 和 remove() 操作相同，唯一区别在于传入路径应为 FAT 磁盘中的绝对路径。创建文件除了文件在 FAT 磁盘的绝对路径外，还需要给出两个参数，分别对应在 FAT 文件系统下的文件参数 attr 和以字节为单位的文件大小 size。文件类型是目录还是文件取决于传入的参数 attr。如果是目录，size 不能小于两个目录项的长度即 64，创建时也会自动生成目录内的 “.” 和 “…” 两个目录项。</li>
-<li>其余不需要传入路径，而是使用文件描述符进行的操作使用原函数如 read()、readn()、write()、close() 等即可。因为使用的是同一套文件描述符，因此这些操作函数是相同的，在 fd.c 中会自动调用 FAT 所需的各个读写或关闭的函数。文件在对目录有更新（如改变大小或删除）或关闭时会自动刷新缓冲区到磁盘，保证下一次启动 MOS 能够正常读取，或使用 mcopy 和 mdir 能正常读取。</li>
-</ul>
-<p>下面将根据 FAT 磁盘的构造简析实现思路：</p>
-<h3 id="fat-磁盘构造说明"><a class="markdownIt-Anchor" href="#fat-磁盘构造说明"></a> FAT 磁盘构造说明</h3>
-<h4 id="fatbpb"><a class="markdownIt-Anchor" href="#fatbpb"></a> FatBPB</h4>
-<p>这是存储在 FAT 磁盘第一个扇区的最前一块区域的，用于存储磁盘基础信息的块，需要在初始化时读入，后续各种处理也需要根据 FatBPB 中的各种信息来完成。</p>
-<p>笔者在实现中定义了一个按字节对齐的结构体，根据 FatBPB 在磁盘中的信息排布定义了相关变量，根据不同变量的大小分别将其定义为 8、16、32位的无符号整型变量或数组。</p>
-<p>整个 FatBPB 包含大量内容，都有在规格书中定义，不再赘述，只举例指出几个与文件处理重点相关的变量：</p>
-<ul>
-<li>BPB_BytsPerSec 16 位，代表磁盘扇区大小</li>
-<li>BPB_SecPerClus 8 位，代表每簇包含扇区数量</li>
-<li>BPB_RootEntCnt 16 位，代表根目录包含的 32 字节目录项数量</li>
-<li>BPB_RsvdSecCnt 16 位，代表保留区的大小，保留区的开始部分是 FatBPB</li>
-</ul>
-<p>这些变量决定了后续我们从哪里开始读磁盘的各个区域，因此需要初始化后保存。我们将其读入后存储在 fs/fatfs.c 的一个结构体变量中，供各个处理函数操作使用。</p>
-<h4 id="fat-表"><a class="markdownIt-Anchor" href="#fat-表"></a> FAT 表</h4>
-<p>磁盘中，紧接着保留区后面的是若干个 FAT 表。在 FAT16 中，FAT 表由许多个 16 位的 FAT 表项组成，每个表项对应了一个簇。表项值为 0x0 时代表该簇为空，为 2 以上总簇数以内的数时代表下一个簇的簇号，为 0xFFFF 时代表该簇是文件/目录的结尾簇。</p>
-<p>FAT 表的前两项用作特殊用途保留，因此簇号从 2 开始编号，表项中对应的“下一个簇簇号”也只能出现大于等于 2 的数。由于 FAT 表项的位数限制，FAT16 所支持的最大簇数也是有限的。</p>
-<p>实现中，笔者将 FAT 表项称为 fat_entry，封装了获取簇号对应的表项值和写入表项值的两个函数。实际进行访问时都要通过这两个函数来操作 FAT 表。</p>
-<p>在此之上，笔者封装了申请一个空簇并清空为 0，申请若干个簇（只操作并修改 FAT 表项），将某个簇号开始的一串簇向后扩展若干个簇大小，将某个簇号开始的一串簇从后往前缩减若干个簇，释放从某簇开始的所有簇这几个函数，用于后续各个文件操作函数进行调用。</p>
-<p>由于实际 FAT 磁盘中是多个 FAT 表互相作为备份，因此每次读写 FAT 表项时，也会同步的检查所有的 FAT 表是否具有相同的内容，并保证向所有 FAT 表写入相同的内容。</p>
-<h4 id="根目录"><a class="markdownIt-Anchor" href="#根目录"></a> 根目录</h4>
-<p>磁盘内在 FAT 表后就是根目录部分。按照 FAT 目录项依次存储了根目录下存放的各个文件或目录对应的目录项。在笔者的实现中，由于 FAT16 的根目录并不和簇一同管理，而是单独一片区域存储，因此在文件系统中也独立出来一段虚拟内存空间进行映射。笔者在初始化时选择直接将根目录下的内容读入内存，以方便文件的访问。</p>
-<h4 id="数据区"><a class="markdownIt-Anchor" href="#数据区"></a> 数据区</h4>
-<p>在根目录后的就是磁盘存储所有数据的地方。每个 FAT 目录项（如果这个文件/目录有大小）都指定了该文件/目录对应的存储空间的开始的第一个簇号，可以根据 FAT 表查找到该文件/目录对应的所有簇的簇号，并实现依次读取。</p>
-<p>具体来说，FAT 规格书提供了公式用于从簇号计算对应磁盘中的开始位置，用以进行磁盘访问。在访问到某文件时，先由 FAT 表得到文件对应的簇号，再访问对应磁盘位置，读入到内存中的对应映射位置即可。这样也避免了如 MOS 文件系统中多级映射带来的 indirect 块的申请与释放问题，某种程度上简化了文件访问操作。</p>
-<h3 id="链表管理的内存映射"><a class="markdownIt-Anchor" href="#链表管理的内存映射"></a> 链表管理的内存映射</h3>
-<p>与 MOS 的原文件系统类似的是，FAT 文件系统也采用文件系统进程的一段内存来将挂载的硬盘中我们需要读取的文件映射到内存中。但是与 MOS 不同的是，由于不希望挂载的硬盘大小受限，FAT 文件系统不采用将整个硬盘空间一一映射到内存的方式，而是采用动态分配制，即通过对一段用于映射的内存空间的管理，实现动态的开辟用于映射磁盘的内存。</p>
-<p>具体来说，FAT 文件系统中，维护了一个双向链表 fat_spaces[]，用于记录已开辟的空间与空闲空间情况。链表元素 struct FatSpace 存储了一段内存的初始地址 st_va，大小 size，所分配给的簇 clus（未分配时设0，由于 FAT 磁盘的簇号必须从 2 开始，因此这么设置是安全的）以及前后链表元素的指针 nxt 和 prev。</p>
-<p>同时设置了两个链表元素 fat_space_head 和 fat_space_tail 分别作为头和尾。这两个元素不存储信息，仅仅用于标识头尾。这两个元素应仅供内存映射部分内部使用，头元素除了 nxt 指针的部分和尾元素除了 prev 指针的部分都不被访问或使用。</p>
-<p>通过内存初始地址 st_va 设为 0 来代表一个链表元素未使用，可供分配。</p>
-<h3 id="长文件名系统"><a class="markdownIt-Anchor" href="#长文件名系统"></a> 长文件名系统</h3>
-<p>FAT 中有一个选择实现的长文件名系统，笔者实现了对其读写的支持。具体来说，对于原本的 FAT 目录项，其规定的文件名存储格式要求文件名（“.”之前的部分）不超过 8 个字符，后缀名（“.”之后的部分）不超过 3 个字符，且只能使用纯大写字母（会丢失文件名的大小写性）和十几个规定好的特殊字符（包括“$%'-_@~`!(){}^#&amp;”，不包括引号），因此对文件名限制较为严格。为了支持现代的复杂文件名，提供了通过在目录项之前多放若干个目录项用于存储更长的文件名的方式，具体来说，一个新增的长文件名存储专用的目录项和原目录项大小相同，包括验证部分和保留部分，剩余部分总计能存储 13 个 Unicode 字符，最多有 31 个这样的目录项连在一起表示一个长文件名，因此大大拓宽（支持 Unicode）和增长（提供更长的支持长度）了文件名的功能，以至于现代操作系统对于一些文件为了保存文件名大小写信息即使能装进 8+3 的范围也要使用长文件名存储。</p>
-<p>显然，这种动态方式占用空间也比最大支持 128 字符，但是每个目录项需要 256 字节的 File 控制块能更显著的节省磁盘空间。</p>
-<p>因此笔者在文件系统中增设了数个用于处理文件名的函数，支持原名到多个长文件名块的正向编码，也支持传入一个开始块（第一个长文件名目录项或唯一一个短文件名目录项）后输出文件名（自动忽略短文件名目录项中多余的位置并自动决策添加或不添加“.”）的操作，供后续处理函数进行处理。</p>
-<h3 id="具体实现"><a class="markdownIt-Anchor" href="#具体实现"></a> 具体实现</h3>
-<h4 id="能够打开和关闭文件读取和写入数据到已打开文件所使用的某个簇"><a class="markdownIt-Anchor" href="#能够打开和关闭文件读取和写入数据到已打开文件所使用的某个簇"></a> 能够打开和关闭文件，读取和写入数据到已打开文件所使用的某个簇</h4>
-<p>调用 user/lib/fatfile.c 中的 fat_open() 函数打开 FAT 文件系统中的文件。模仿原文件系统，笔者在 fatfs.c 中创建了 fat_dir_lookup() 和 fat_walk_path() 等函数，使用类似的操作实现了在 FAT 文件系统中进行按文件名的文件查找。需要注意的是，由于存在长文件名系统，笔者将读取长短文件名封装为了一个函数 fat_get_full_name()，传入开始的一个目录项（长文件名则为第一个长文件名目录项，短文件名则为那个短文件名目录项），根据 FAT 文件系统的规则，向下读取得到目录项对应的全名，并去除短文件名表示中多余的空位，在合适的位置添加点。</p>
-<p>读取和写入方面，前文已经提到过使用链表管理内存映射。FAT 文件系统中，采用以簇为单位的文件映射，即一个文件如果有簇要被使用，则会从前述的链表中调度一段相应的内存空间用于映射该簇，因此内存空间开辟都是以一个簇的大小为单位（不固定，取决于读取到的 BPB 中的簇的大小）。</p>
-<p>由于这种映射方式下，同一个文件的各个簇在内存中既不是连续在一起的，也不是一定占用一页的，原有的按一页一页进行映射的方式就不完全适用于 FAT 文件系统。因此，笔者将读写时的页映射从以页大小为单位改为以簇大小为单位，即映射到用户空间时，如果一个簇大小有不足一页的部分，会将整个页分配给这个簇用于映射，下个簇再新开页进行映射。如此，能够动态的适应簇的不同大小。为了实现这种修改，笔者略微修改了 FAT 文件系统在用户库中用于读取和写入的函数，以实现对每一页，只读写簇占用的部分。</p>
-<h4 id="支持调整文件大小"><a class="markdownIt-Anchor" href="#支持调整文件大小"></a> 支持调整文件大小</h4>
-<p>在实现了对于 FAT 表的操作后，对文件大小的调整只需要调用相关 FAT 表函数即可，由于已经封装好了动态的增大或减小的函数，直接调用，再更新目录项中的文件大小的值即可。</p>
-<p>需要注意的是，由于 FAT 使用簇为单位进行空间分配，在修改大小前如果发现修改前后的文件大小占用的簇数相等，便不再修改，仅对文件目录项存储的文件大小的值进行修改。</p>
-<h4 id="支持删除文件"><a class="markdownIt-Anchor" href="#支持删除文件"></a> 支持删除文件</h4>
-<p>类似的，删除文件也只需要调用相关的 FAT 表函数即可，传入该文件对应的第一个簇号，就会自动的将 FAT 表中各个簇的 FAT 表项清零。需要注意的是，这里删除文件和前述调整大小均只改变 FAT 表项，簇内的内容会在新申请空间时清零，不会在此时修改，以此降低磁盘损耗，提高整体速度。</p>
-<h4 id="支持刷新缓冲区"><a class="markdownIt-Anchor" href="#支持刷新缓冲区"></a> 支持刷新缓冲区</h4>
-<p>笔者按照原文件系统的函数方法实现了相同效果的 dirty 和 flush 相关函数，具体来说，可以将一个文件对应的所有簇设为脏的，调用 flush 时会检查所有为脏的簇并写回磁盘。</p>
-<p>同时新增了一个 flush 函数的参数 force，用于指定无论是否为脏都强制写回这个簇，用于目录项的更新。因为原文件系统中只有 close 一个文件时会设脏，同时目录也不会被 close，为了简便起见的实现文件的删除、调整大小和新建都能在磁盘中存储，加入了 force，在对目录项进行这些修改后会将其强制写回磁盘。</p>
-<h4 id="支持新建文件夹"><a class="markdownIt-Anchor" href="#支持新建文件夹"></a> 支持新建文件夹</h4>
-<p>为了支持新建文件/文件夹，首先需要支持对一段若干长度的目录项的申请，用于长文件名的存储。为此，笔者加入了 fat_dir_alloc_files() 函数，能够在一个目录下申请指定数目的连续的空目录项并返回对应的指针。</p>
-<p>由于 FAT 文件系统对于短名目录项的文件名的特殊要求，加入了 encode_char() 函数，将字符编码为仅包含大写字母和指定字符的短文件名格式。加入了 encode_short_name() 函数，为指定的短文件名目录项指针写入相对应的合规格的文件名。加入了 encode_long_name() 函数，为一段连续的长文件名目录项指针写入对应的文件名。由于 C 语言的限制，目前该 FAT 文件系统仅支持 ASCII 文件名，但会按照 Unicode 方式存储，保证其他系统也能正常读取。</p>
-<p>此外，在创建文件时，FAT 还会维护文件相关的各个时间信息，这在笔者的系统中通过封装在 user/lib/time.c 的函数实现，后文会详述。该文件通过访问系统的 RTC 时钟得到 UTC 时间，+8h 得到 CST 时间后在文件系统中进行存储，并调用 FAT 表项操作函数进行空间的申请，同时按照短文件名的设置好的文件名生成 FAT 要求的 checksum 存储到每个长文件名目录项中。</p>
-<p>如果通过参数判断得到新建的是文件夹，则会根据 FAT 规格要求，在文件夹的簇内新建两个分别对应当前目录和父目录的目录项，名为 “.” 和 “…”。</p>
-<h3 id="运行测试"><a class="markdownIt-Anchor" href="#运行测试"></a> 运行测试</h3>
-<p>在根目录下调用 make test lab=5_chlg &amp;&amp; make run 即可运行挑战性任务的测试，测试了原 lab5_4 lab5_5 的测试点内容，并添加了能够读取到多个簇的长文件的创建和读写测试，以及文件夹的创建测试。</p>
-<p>没有输出任何 panic 和 assert 信息即为测试通过。</p>
-<h2 id="代码架构"><a class="markdownIt-Anchor" href="#代码架构"></a> 代码架构</h2>
-<h3 id="新增文件总览"><a class="markdownIt-Anchor" href="#新增文件总览"></a> 新增文件总览</h3>
-<ul>
-<li>fs 文件夹下有 fatfs.c fatserv.c fatserv.h</li>
-<li>user/include 下有 fatfs.h</li>
-<li>user/lib 下有 time.c fatfile.c fatipc.c</li>
-</ul>
-<p>后文主要叙述一些区别于原有文件系统，为了增加相关功能支持而新加入的函数。而如 fatfs.c fatserv.c fatfile.c fatipc.c 均为参照原文件系统中文件 fs.c serv.c file.c fsipc.c 的各个函数功能，进行简单修改得到，笔者在代码书写中进行的原创部分均有在前文“具体实现”中提到，便不再详述。</p>
-<h3 id="utils-基础支持部分"><a class="markdownIt-Anchor" href="#utils-基础支持部分"></a> Utils （基础支持部分）</h3>
-<p>该部分列举一些在实现 FAT 文件系统中不与 FAT 文件处理直接相关的，但是为了更方便处理封装成函数的内容。</p>
-<h4 id="userlibtimec"><a class="markdownIt-Anchor" href="#userlibtimec"></a> user/lib/time.c</h4>
-<p>本文件从 lab5-1-exam中复制得到，并进行了改动和增量。</p>
-<p>原有的 get_time() 函数被保留，仍用于获取系统 RTC 时钟中的当前时间，返回值精确到秒，传入指针对应 us 变量是微秒级别的偏移。</p>
-<p>新增 get_all_time() 函数以及其中用于判断闰年的函数 is_leap_year()，其中 get_all_time() 用于将单位为秒的当前时间转化为 UTC 时间下的年月日时分秒格式，存储在传入的六个整型指针之中，方便存储文件创建与更改信息用。</p>
-<p>新增 get_fat_time() 函数，将前述获取到的年月日时分秒信息编码为 FAT 中存储日期、时间等的具体格式。</p>
-<p>新增两个用于打印 FAT 中编码的日期和时间信息的函数，用于调试。</p>
-<h3 id="相关定义"><a class="markdownIt-Anchor" href="#相关定义"></a> 相关定义</h3>
-<p>该部分主要列举在头文件中定义的各种结构体与宏定义相关信息。</p>
-<h4 id="struct-fatbpb"><a class="markdownIt-Anchor" href="#struct-fatbpb"></a> struct FATBPB</h4>
-<p>如前，用于读取和存储 FAT 磁盘开头的 BPB 块信息，由于需要依靠指针的强制类型转换进行读取，需要添加参数使其按字节对齐。按照 FAT 中对 BPB 的定义进行各个参数的大小和名字定义。</p>
-<p>文件系统中会定义一个该变量，在文件系统初始化时相关信息从磁盘中复制得到。</p>
-<h4 id="struct-fatdisk"><a class="markdownIt-Anchor" href="#struct-fatdisk"></a> struct FATDISK</h4>
-<p>由于 FatBPB 中只定义了一些基础信息，更多的信息需要通过多个 FatBPB 中的内容计算得到，比如单个簇的字节数就需要 FatBPB.BPB_BytsPerSec * FatBPB.BPB_SecPerClus 得到，在代码书写中过稍显冗余，因此定义了一个结构体 FatDisk，用于存储一些常用变量，将在初始化时读入 FatBPB 后根据其值计算得到，同样存储在 fs/fatfs.c 的一个结构体变量中。</p>
-<p>FatDisk 结构体包括如下变量，均存储为 32 位整型：</p>
-<ul>
-<li>RootDirSectors 根目录所包含的扇区数量</li>
-<li>FATSz 一个 FAT 表占用的扇区数量</li>
-<li>TotSec 磁盘总扇区数量</li>
-<li>DataSec 磁盘数据区（存各个簇的部分）包含扇区数量</li>
-<li>CountofClusters 磁盘数据区簇数</li>
-<li>FirstRootDirSecNum 根目录第一个扇区的扇区编号</li>
-<li>BytsPerClus 一个簇包含的字节数</li>
-</ul>
-<h4 id="struct-fatdirent"><a class="markdownIt-Anchor" href="#struct-fatdirent"></a> struct FATDIRENT</h4>
-<p>是 FAT directory entry 的简写，代表 FAT 的目录项。各个参数定义和大小与 FAT 中对常规目录项的定义相同，记录了一个目录的各种信息。</p>
-<p>用于从目录中读取目录包含的内容信息，类似于 MOS 原本文件系统中的 struct File 结构体，在各种传参时会用到。</p>
-<h4 id="struct-fatlongname"><a class="markdownIt-Anchor" href="#struct-fatlongname"></a> struct FATLONGNAME</h4>
-<p>作为 FAT 中存储目录项的长文件名的附加目录项结构体存在，各个参数定义和大小与 FAT 中对长文件名目录项的定义相同，用于记录和某个目录项对应的长文件名（也可能是目录名）。</p>
-<p>虽然 FAT 规格中按 UNICODE 存储，但由于复杂性问题，存名字的部分按 char 为单位进行存储，也暂时仅支持 UNICODE 中 ASCII 部分（但是和其他系统兼容）。</p>
-<p>用于从目录中读取附加的长文件名信息。</p>
-<h4 id="struct-fatspace"><a class="markdownIt-Anchor" href="#struct-fatspace"></a> struct FatSpace</h4>
-<p>作为文件系统中进行内存映射所使用的专用双向链表的链表元素，一个元素代表在 FAT 文件系统中用于映射的一段内存，记录了开始地址、长度和所属的簇号，内存以簇为单位进行分配，记录的簇号为零时代表这段内存是未使用的。</p>
-<h4 id="e_fat_"><a class="markdownIt-Anchor" href="#e_fat_"></a> E_FAT_*</h4>
-<p>记录了 FAT 文件系统中一些出现的错误情况，从 1000 开始编号，以方便与其他错误号进行区分，各个错误号具体含义如下：</p>
-<p>// TODO</p>
-<h4 id="fat_attr_"><a class="markdownIt-Anchor" href="#fat_attr_"></a> FAT_ATTR_*</h4>
-<p>记录了 FAT 规定的在目录项中的 Attr 部分的各个存储值含义，包括只读、隐藏、系统、容量id、目录、Archive、长文件名目录项。</p>
-<h4 id="fat_last_long_entry"><a class="markdownIt-Anchor" href="#fat_last_long_entry"></a> FAT_LAST_LONG_ENTRY</h4>
-<p>FAT 的长文件名目录项中，第一个字节存储了 Ord，即该目录项在对应的所有长文件名目录项中的次序，以倒序排列。而存储在最前的一个长文件名目录项的该字节会额外按位或一个 0x40，即该宏定义对应的值，用于标注该项是第一个。</p>
-<h4 id="fat_max_"><a class="markdownIt-Anchor" href="#fat_max_"></a> FAT_MAX_*</h4>
-<p>有四项，分别记录了当前文件系统支持的最大簇大小（以字节为单位），当前文件系统记录空间的链表存储的链表元素最大数目，根目录最大扇区数以及根目录最大字节数。</p>
-<h4 id="fatva"><a class="markdownIt-Anchor" href="#fatva"></a> FATVA*</h4>
-<p>包括三项，分别代表在 FAT 文件系统进程中用于映射读取的 FAT 磁盘文件的这部分内存的虚拟地址的下界、上界和范围大小（分别为 FATVAMAX，FATVAMIN，FATROOTVA）。</p>
-<h4 id="fatrootva"><a class="markdownIt-Anchor" href="#fatrootva"></a> FATROOTVA</h4>
-<p>代表在 FAT 文件系统进程中用于映射根目录的部分内存空间的起始地址，实现中被定义为FATVAMAX + 0x1000。</p>
-<h3 id="内存映射"><a class="markdownIt-Anchor" href="#内存映射"></a> 内存映射</h3>
-<p>该部分主要管理内存映射空间的分配和回收。</p>
-<h4 id="alloc_fat_spacest_va-size-clus"><a class="markdownIt-Anchor" href="#alloc_fat_spacest_va-size-clus"></a> alloc_fat_space(st_va, size, clus)</h4>
-<p>当需要新建一个链表元素时，调用该函数，在所有链表元素中找到一个未使用的元素，并将其三个值设置为传入参数对应的值，并返回该元素的指针。</p>
-<p>该函数不负责维护链表向前和向后的指针，需要调用后由其他部分维护。</p>
-<p>该函数是一个内存映射管理函数内部使用的函数，不应当在内存映射部分之外的地方调用。</p>
-<h4 id="insert_head_fat_space_listst_va-size-clus"><a class="markdownIt-Anchor" href="#insert_head_fat_space_listst_va-size-clus"></a> insert_head_fat_space_list(st_va, size, clus)</h4>
-<p>该函数的作用是向链表头插入一个元素。</p>
-<p>先调用 alloc_fat_space() 获取一个元素并设置好信息，再将其插入到链表头的后面，总共要重设四项内容。</p>
-<p>该函数仅用于内部处理，不应当被内存映射部分之外的部分调用。</p>
-<h4 id="remove_fat_space_listfsp"><a class="markdownIt-Anchor" href="#remove_fat_space_listfsp"></a> remove_fat_space_list(fsp)</h4>
-<p>将一个元素 fsp 从链表移除。仅设置其前后两项的指针，不释放该元素（即保持其 st_va 为有值，不允许其被 alloc_fat_space() 取到）。</p>
-<p>该函数仅用于内部处理，不应当被内存映射部分之外的部分调用。</p>
-<h4 id="insert_spacest_va-size"><a class="markdownIt-Anchor" href="#insert_spacest_va-size"></a> insert_space(st_va, size)</h4>
-<p>插入一段空闲空间，从 st_va 开始，大小为 size。</p>
-<p>首先遍历寻找在该空间之前且与该空间相邻的空闲空间元素 fspace，如果有，则调用 remove_fat_space_list() 将其移除，递归调用 insert_space() 插入这两段空闲空间之和的空间后，将 fspace 释放（设 st_va 为 0）并返回。</p>
-<p>再遍历寻找在该空间之后且与该空间相邻的空闲空间元素 fspace，如果有，则调用 remove_fat_space_list() 将其移除，递归调用 insert_space() 插入这两段空闲空间之和的空间后，将 fspace 释放（设 st_va 为 0）并返回。</p>
-<p>如果上述两个查找完都没有，代表当前空间已经是可以融合的最大空闲空间，则调用 insert_head_fat_space_list() 将该空闲空间对应的元素插入链表。</p>
-<h4 id="is_clus_mappedclus-va"><a class="markdownIt-Anchor" href="#is_clus_mappedclus-va"></a> is_clus_mapped(clus, va)</h4>
-<p>有两个用途，首先用于检查簇号为 clus 的簇是否被映射到内存，如果是，返回 1，否则返回 0。检查方式是遍历整个链表查找。</p>
-<p>其次用于获取簇号为 clus 的簇被映射到的虚拟地址 va。如果传入的指针 va 不为零，则将其对应的值赋值为对应的虚拟地址。</p>
-<h4 id="get_clus_space_infoclus"><a class="markdownIt-Anchor" href="#get_clus_space_infoclus"></a> get_clus_space_info(clus)</h4>
-<p>用于在链表中查找簇号为 clus 的簇对应的链表元素，并返回其指针，我们默认调用这个函数都应该在 clus 已经被映射时调用。用于获取一些相关信息。</p>
-<h4 id="free_clusclus"><a class="markdownIt-Anchor" href="#free_clusclus"></a> free_clus(clus)</h4>
-<p>用于将簇号为 clus 的簇映射的空间释放。</p>
-<p>如果 clus 未映射，会报错。</p>
-<p>如果未找到，会返回 -E_FAT_NOT_FOUND。</p>
-<p>正常找到会返回 0。</p>
-<h4 id="debug_print_fspace"><a class="markdownIt-Anchor" href="#debug_print_fspace"></a> debug_print_fspace()</h4>
-<p>用于调试。输出所有链表中的元素及其信息。</p>
-<h4 id="alloc_fat_file_spaceclus-bysize-va"><a class="markdownIt-Anchor" href="#alloc_fat_file_spaceclus-bysize-va"></a> alloc_fat_file_space(clus, bysize, va)</h4>
-<p>为簇号为 clus 的簇开辟一个链表元素，即开辟一段空间用于映射该簇，bysize 是需要开辟的大小，在实际使用中只会设置为一个簇的大小。</p>
-<p>如果指针 va 非零，其对应的值会被设为映射到的内存的初始地址。</p>
-<p>如果这段空间已满，返回 -E_FAT_VA_FULL。</p>
-<h4 id="fat_space_init"><a class="markdownIt-Anchor" href="#fat_space_init"></a> fat_space_init()</h4>
-<p>用于内存映射部分的初始化。</p>
-<p>将所有元素的 st_va 设为 0。</p>
-<p>将头的下一项设为尾，尾的上一项设为头。</p>
-<p>插入一个从 FATVAMIN 到 FATVAMAX 的链表元素，代表整个用于映射的空间都是空的。</p>
-<h3 id="簇管理"><a class="markdownIt-Anchor" href="#簇管理"></a> 簇管理</h3>
-<p>簇管理部分主要封装了对簇进行读写的函数和簇号检测的函数。</p>
-<h4 id="is_bad_clusterclus"><a class="markdownIt-Anchor" href="#is_bad_clusterclus"></a> is_bad_cluster(clus)</h4>
-<p>检测簇号 clus 是否合法，即大于等于 2 且小于等于最大簇数，如果不合法则返回 1，否则返回 0。</p>
-<h4 id="read_disk_fat_clusterclus-buf"><a class="markdownIt-Anchor" href="#read_disk_fat_clusterclus-buf"></a> read_disk_fat_cluster(clus, buf)</h4>
-<p>将磁盘中簇号为 clus 的簇中的内容读取到内存空间中 buf 开始的一段内存中，不检查内存空间是否合法，会检测簇号的合法性，以及检测簇对应的 FAT 表项是否标记为空（代表簇空闲），如果簇号不合法，返回 -E_FAT_BAD_CLUSTER，如果簇被标记为空，返回 -E_FAT_ACCESS_FREE_CLUS。</p>
-<p>合法情况下，调用 ide_read 读取磁盘，并返回 0。</p>
-<h4 id="write_disk_fat_clusterclus-buf"><a class="markdownIt-Anchor" href="#write_disk_fat_clusterclus-buf"></a> write_disk_fat_cluster(clus, buf)</h4>
-<p>将内存空间 buf 开始的一个簇大小的内容写入到磁盘中簇号为 clus 的簇中，不检查内存空间是否合法，会检测簇号的合法性，以及检测簇对应的 FAT 表项是否标记为空（代表簇空闲），如果簇号不合法，返回 -E_FAT_BAD_CLUSTER，如果簇被标记为空，返回 -E_FAT_ACCESS_FREE_CLUS。</p>
-<p>合法情况下，调用 ide_write 写入磁盘，并返回 0。</p>
-<h4 id="debug_print_cluster_disk_dataclus"><a class="markdownIt-Anchor" href="#debug_print_cluster_disk_dataclus"></a> debug_print_cluster_disk_data(clus)</h4>
-<p>将一个簇中的所有内容输出，用于调试。以字节为单位输出，一行 16 个字节。</p>
-<h3 id="根目录管理"><a class="markdownIt-Anchor" href="#根目录管理"></a> 根目录管理</h3>
-<p>由于在 FAT16 中，根目录不占用数据区，是单独区分出来的一段磁盘空间，也不被 FAT 表所记录，因此在 FAT 文件系统中，也将其单独管理。</p>
-<p>根目录的内容会在文件系统初始化时被读入，固定映射到 FATROOTVA 开始的一段内存中。</p>
-<p>对于根目录的访问和读写通过调用 read_disk_fat_cluster() 和 write_disk_fat_cluster() 实现，两个函数会首先特判，如果 clus == 0 即访问了 0 号簇，即视为访问根目录，会读写整个根目录到 FATROOTVA 部分的内存。</p>
-<p>在 is_clus_mapped() 中，会首先特判 clus == 0 的情况，该情况下永远返回 1，因为根目录在初始化时已经被映射，并设置（如果需要）va 为 FATROOTVA。</p>
-<p>由于内存映射链表中使用 clus = 0 来标注链表元素为空，且内存映射链表管理的一段内存和用于映射根目录的内存互不相同，因此不允许调用内存映射相关函数管理根目录，如果传入 clus 参数为 0 ，会报错。</p>
-<h3 id="fat-表管理"><a class="markdownIt-Anchor" href="#fat-表管理"></a> FAT 表管理</h3>
-<p>本部分主要提供了对于 FAT 表项的读写操作，以及由此延伸出的磁盘空间以簇为单位的分配和回收操作，封装了动态变大变小的函数，便于文件的大小重定。</p>
-<h4 id="is_free_clusterclus"><a class="markdownIt-Anchor" href="#is_free_clusterclus"></a> is_free_cluster(clus)</h4>
-<p>检查簇号为 clus 的簇是否为空簇，通过检查 FAT 表项是否为 0 完成，如果空返回 1，否则返回 0。</p>
-<h4 id="get_fat_entryclus-pentry_val"><a class="markdownIt-Anchor" href="#get_fat_entryclus-pentry_val"></a> get_fat_entry(clus, pentry_val)</h4>
-<p>通过访问 FAT 表，获取簇号为 clus 的簇对应的表项值，并存储在 pentry_val 的内存空间中，正常运行返回 0。</p>
-<p>执行中会同步读该簇对应的的其他 FAT 表项，如果不相同会返回 -E_FAT_ENT_DIFF。</p>
-<h4 id="set_fat_entryclus-entry_val"><a class="markdownIt-Anchor" href="#set_fat_entryclus-entry_val"></a> set_fat_entry(clus, entry_val)</h4>
-<p>通过访问 FAT 表，将获取簇号为 clus 的簇对应的表项值 entry_val 写入到 FAT 表中，如果正常运行返回 0。</p>
-<p>执行中会同步写该簇对应的的其他 FAT 表项。</p>
-<h4 id="debug_print_fat_entryclus"><a class="markdownIt-Anchor" href="#debug_print_fat_entryclus"></a> debug_print_fat_entry(clus)</h4>
-<p>输出对应的 FAT 表项内容，调试用。</p>
-<h4 id="search_and_get_fat_entrypclus"><a class="markdownIt-Anchor" href="#search_and_get_fat_entrypclus"></a> search_and_get_fat_entry(pclus)</h4>
-<p>通过从头遍历的方式获取一个空簇，并将簇号设置在 pclus 对应的内存处，正常运行返回 0。如果簇已满返回 -E_FAT_CLUSTER_FULL。</p>
-<h4 id="alloc_fat_cluster_entriespclus-count"><a class="markdownIt-Anchor" href="#alloc_fat_cluster_entriespclus-count"></a> alloc_fat_cluster_entries(pclus, count)</h4>
-<p>申请 count 个簇，将其设置为相连（最后一个的表项设置为 0xFFFF）并将首个簇的值存储在 pclus 对应的地址处。正常运行返回 0。</p>
-<h4 id="expand_fat_cluster_entriespclus-count-pendclus"><a class="markdownIt-Anchor" href="#expand_fat_cluster_entriespclus-count-pendclus"></a> expand_fat_cluster_entries(pclus, count, pendclus)</h4>
-<p>通过读取 pclus 指向的簇对应的一串簇，在其尾部拓展 count 个簇，如果设置了 pendclus，将最尾部的簇设置到 pendclus 对应的内存处。用于扩展文件大小。正常运行返回 0。</p>
-<h4 id="free_fat_cluster_entriesclus"><a class="markdownIt-Anchor" href="#free_fat_cluster_entriesclus"></a> free_fat_cluster_entries(clus)</h4>
-<p>释放一串簇，即从簇号 clus 开始的，直到 FAT 表项为 0xFFFF 的所有簇，将这些簇对应表项设为 0x0。正常运行返回 0。</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Challenge-Lab5/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -477,7 +294,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:14:09 / Modified: 11:15:43" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:09+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:14:09 / Modified: 11:37:00" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:09+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -498,52 +324,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-61"><a class="markdownIt-Anchor" href="#thinking-61"></a> Thinking 6.1</h3>
-<p>应当如下修改：（仅贴出修改部分，即switch内的代码）</p>
-<p>具体来说，交换父子部分的代码即可。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (fork()) &#123; </span><br><span class="line">  <span class="keyword">case</span> <span class="number">-1</span>:</span><br><span class="line">    <span class="keyword">break</span>;</span><br><span class="line">  <span class="keyword">case</span> <span class="number">0</span>: <span class="comment">/* son process - as writer */</span> </span><br><span class="line">    close(fildes[<span class="number">0</span>]); <span class="comment">/* close read end */</span></span><br><span class="line">    write(fildes[<span class="number">1</span>], <span class="string">&quot;Hello world\n&quot;</span>, <span class="number">12</span>); <span class="comment">/* write data to pipe */</span></span><br><span class="line">    close(fildes[<span class="number">1</span>]); <span class="comment">/* close write end */</span></span><br><span class="line">    <span class="built_in">exit</span>(EXIT_SUCCESS); <span class="comment">/* exit */</span></span><br><span class="line">  <span class="keyword">default</span>: <span class="comment">/* father process - as reader */</span> </span><br><span class="line">    close(fildes[<span class="number">1</span>]); <span class="comment">/* close write end */</span></span><br><span class="line">    read(fildes[<span class="number">0</span>], buf, <span class="number">100</span>);  <span class="comment">/* read data from pipe */</span></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;child-process read:%s&quot;</span>,buf); </span><br><span class="line">    close(fildes[<span class="number">0</span>]);  <span class="comment">/* close read end */</span></span><br><span class="line">    <span class="built_in">exit</span>(EXIT_SUCCESS); <span class="comment">/* exit */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-62"><a class="markdownIt-Anchor" href="#thinking-62"></a> Thinking 6.2</h3>
-<p>dup 函数的作用的作用是把一个文件描述符的内容映射给另一个文件描述符。</p>
-<p>比如有一个管道，各个文件描述符映射次数为 p[0] = p[1] = 1，pipe = 2。</p>
-<p>如果此时要映射读端，会先 p[0]<ins>，再 pipe</ins>。</p>
-<p>如果这两个操作之间发生中断，则会导致 p[0] == pipe。此时就会错误的认为写端关闭，出现错误。</p>
-<h3 id="thinking-63"><a class="markdownIt-Anchor" href="#thinking-63"></a> Thinking 6.3</h3>
-<p>准确来说，MOS <strong>通过关中断的方式让系统调用不被中断</strong>，因而对于用户而言，系统调用期间不会发生中断，可以被视为是原子的。</p>
-<p>具体来说，代码里涉及到了两个宏，会将 CP0_STATUS 寄存器的 STATUS_CU0 位置位，从而实现开关中断的效果，而每次触发系统调用会首先调用相关宏关中断，结束后再开中断。</p>
-<p><em>注：这种方式显然不适用于多核的情况，多核时需要采用硬件提供的操作来进行一些原子操作，或者使用互斥锁等方式保证进程同步。</em></p>
-<h3 id="thinking-64"><a class="markdownIt-Anchor" href="#thinking-64"></a> Thinking 6.4</h3>
-<ul>
-<li>可以。我们通过验证 pageref(fd) == pager(pipe) 来检测管道是否关闭，如果改变上述解除映射顺序，就能一直保证 pageref(fd) &lt; pageref(pipe)，不会出现错误。</li>
-<li>可以，通过先将 pageref(pipe)++ ，再将 pageref(fd)++的方式，保证了任何时候都有pageref(fd) &lt; pageref(pipe)，不会出现错误。</li>
-</ul>
-<h3 id="thinking-65"><a class="markdownIt-Anchor" href="#thinking-65"></a> Thinking 6.5</h3>
-<ul>
-<li>打开文件的过程包括：用户调用用户库的 open() 函数，进而调用 fsipc_open() 函数向文件管理进程发送 ipc 请求，文件管理进程通过调用 serv_open() 进而调用相关函数，经过查找路径等过程将文件打开，存储文件描述符并通过 ipc 返回给用户。</li>
-<li>打开 ELF 是通过 load_icode() 函数完成。函数中解析出每个段的段头 ph 和数据在内存中的起始位置 bin，再通过 elf_load_seg() 加载各个程序段，相关的内存拷贝和映射工作由 load_icode_mapper() 函数进行，通过调用相关的内存处理函数进行映射。</li>
-<li>在 elf_load_seg() 函数中，先将 ELF 文件中已有的数据映射进内存，完成之后，还会继续调用 map_page() （即 load_icode_mapper() 函数），将全 0 的页面映射到后续的部分，使得大小能够与 ELF 中设置的大小匹配，保证了 .bss 中的变量也能有足够的空间，且初始化为 0 。</li>
-</ul>
-<h3 id="thinking-66"><a class="markdownIt-Anchor" href="#thinking-66"></a> Thinking 6.6</h3>
-<p>在 usr/init.c 中，调用了 opencons() 函数，打开一个可读写的文件描述符 fd，由于此时并没有任何文件描述符被 alloc ，因此这是第一个即 0 号文件描述符。之后调用 dup(0, 1) 将 0 号复制到 1 号，从而实现了将其定为标准输入和标准输出。</p>
-<h3 id="thinking-67"><a class="markdownIt-Anchor" href="#thinking-67"></a> Thinking 6.7</h3>
-<p>MOS 中的 shell 命令都是外部命令。</p>
-<p>而 cd 命令需要改变当前的进程所在目录即 pwd，如果在外部更改，一旦 fork 了新进程，进程的所在目录会回到根目录下，不能实现正确的 cd 效果。因此在外部无法正确实现 cd，只能在内部实现。</p>
-<h3 id="thinking-68"><a class="markdownIt-Anchor" href="#thinking-68"></a> Thinking 6.8</h3>
-<ul>
-<li>可以观察到两次 spawn，分别对应 ls 和 cat 两个命令。</li>
-<li>可以观察到四次进程销毁，分别对应开始时执行命令 fork 出的子 shell 进程，ls 和 cat 两个命令以及管道 fork 出的子进程。</li>
-</ul>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<ul>
-<li>本实验一方面的主要难点在于 pipe 相关函数的思维量，需要一点点思考来使代码能够适应不同初始情况下对管道信息的维护，主要是对读位置和写位置的处理等，需要全面覆盖到各种情况，因此不能马虎随便写。</li>
-<li>此外关于管道关闭判断和 pageref 顺序导致的问题，已经在指导书和思考题中说明，并没有太高难度，主要是明确对中断的正确理解即可。</li>
-<li>到 spawn 函数部分，则需要充分理解包括 lab2、lab3、lab4、lab5 中的相关知识，熟练使用相关系统调用和其他函数，然后按照提示进行补全即可。</li>
-<li>sh 部分，理解重定向的实现方式是通过映射到文件描述符 0 和 1 的原理，在此基础上调用 open 和 dup 等函数即可。</li>
-</ul>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>Lab6 的完成，有一种为半个多学期的努力画上句点的感觉。在看到（虽然大多数代码都不是）自己写的操作系统终于能跑出一个像样的 shell 界面时，还是很有成就感的。相应的，Lab6 的相关内容也显得综合性较强，如果对前面的 Lab 有足够的了解其实实现起来相对轻松，但是如果知识有漏洞可能就不会那么顺利。</p>
-<p>祝贺操作系统实验完结！</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab6/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -587,7 +376,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:14:07 / Modified: 11:15:30" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:07+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:14:07 / Modified: 11:36:57" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:07+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -608,84 +406,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
-<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
-<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
-<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
-<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
-<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
-<p>一个文件控制块大小为 BY2FILE = 256。</p>
-<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
-<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
-<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
-<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
-<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
-<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
-<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
-<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
-<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
-<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
-<p>SECT2BLK 一个磁盘块内的扇区数目</p>
-<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
-<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
-<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
-<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
-<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
-<p>MAXNAMELEN 文件名的最长大小（char数）</p>
-<p>MAXPATHLEN 路径名的最长大小（char数）</p>
-<p>NDIRECT 文件直接指针数量</p>
-<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
-<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
-<p>BY2FILE 文件控制块的大小（字节数）</p>
-<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
-<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
-<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
-<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
-<p>为文件描述符结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>u_int fd_dev_id 外设 id</li>
-<li>u_int fd_offset 读写的当前偏移量</li>
-<li>u_int fd_omode 文件打开方式，如只读</li>
-</ul>
-<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
-<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>struct Fd f_fd 对应的文件描述符</li>
-<li>u_int f_fileid 文件的 id</li>
-<li>struct File f_file 对应的文件系统控制块</li>
-</ul>
-<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
-<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
-<ul>
-<li>char f_name[MAXNAMELEN] 文件名</li>
-<li>uint32_t f_size 文件大小，单位字节</li>
-<li>uint32_t f_type 文件类型，文件或目录</li>
-<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
-<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
-<li>struct File *f_dir 父目录</li>
-<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
-</ul>
-<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
-<p>分为两种，同步消息和返回消息。</p>
-<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
-<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
-<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
-<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
-<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
-<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
-<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
-<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
-<p>明确文件目录的结构关系以及内存使用即可。</p>
-<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
-<p>按照要求调用对应的函数即可。</p>
-<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
-<p>参考 write 即可。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab5/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -729,7 +458,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:14:04 / Modified: 11:15:15" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:04+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:14:04 / Modified: 11:36:53" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:04+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -750,67 +488,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-41"><a class="markdownIt-Anchor" href="#thinking-41"></a> Thinking 4.1</h3>
-<ul>
-<li>内核在保存现场时会使用 SAVE_ALL 宏将所有通用寄存器的值保存在 KSTACKTOP 向下一个 Trapframe 的区域。</li>
-<li>刚刚陷入内核后可以，这时会使用 SAVE_ALL 宏保存现场，随后跳转到各个异常处理函数中，异常处理函数会根据后续调用的 C 函数需要的传参更改 $a0-$a3 的值，因此在这之后应当从保存的 Trapframe 中取参数。</li>
-<li>我们首先由异常处理函数将 Trapframe 传给 do_syscall 函数，在这个函数中，我们将 Trapframe 中和栈中用户传给 msyscall 的参数取出，作为参数调用对应的系统调用函数。</li>
-<li>调用过对应系统调用函数后，内核将返回值赋值给了 Trapframe 上的 $v0，用来向用户态模拟 ”函数返回值“，同时将 EPC += 4，使得返回后用户能运行下一条指令。</li>
-</ul>
-<h3 id="thinking-42"><a class="markdownIt-Anchor" href="#thinking-42"></a> Thinking 4.2</h3>
-<p>为了验证变换是否正确，检查出可能存在的内核其他函数误操作修改了进程的 envid 的情况，或是 alloc 时进程赋值的 envid 不正确的情况，作为一种验证手段，类似其他内核函数内有 “不会被运行到的地方” 放一句 panic 的效果。</p>
-<h3 id="thinking-43"><a class="markdownIt-Anchor" href="#thinking-43"></a> Thinking 4.3</h3>
-<p>mkenvid 函数对 (1 &lt;&lt; LOG2NENV) 取或，因此返回值一定非零，这是代码上的解释。</p>
-<p>应用中，所有 env 相关函数调用时都认为 envid=0 时代表取 curenv （因为 envid2env 是这么处理的），因此不能使其他 envid 是 0。</p>
-<h3 id="thinking-44"><a class="markdownIt-Anchor" href="#thinking-44"></a> Thinking 4.4</h3>
-<p>C，在父进程返回子进程的 pid，在子进程返回 0。</p>
-<h3 id="thinking-45"><a class="markdownIt-Anchor" href="#thinking-45"></a> Thinking 4.5</h3>
-<p>对于所有用户空间，应该映射的部分包括虚拟地址从 0 到 USTACKTOP 的部分，这些用户空间包括了用户自己的各种全局变量和栈中局部变量等内存数据。</p>
-<p>不应映射的部分包括 UXSTACKTOP（处理写入异常使用），UENVS 和 UPAGES （只读，所有进程相同，映射内核空间的进程和页表数组），UVPT（页目录，每个进程独立）等 USTACKTOP 上的，一般情况下不应被用户进程所操作的页。</p>
-<h3 id="thinking-46"><a class="markdownIt-Anchor" href="#thinking-46"></a> Thinking 4.6</h3>
-<ul>
-<li>vpd 用于给用户访问页目录项，vpt 用于给用户访问各个页表。访问一个虚拟地址 va 对应的页目录用 vpd[PDX(va)]，页表用 vpt[VPN(va)]。</li>
-<li>因为所有页表占据了一段连续的内存。</li>
-<li>页目录占据的恰好是页表内存中能映射到页表这一段内存的对应页表的地址。(UVPT + (PDX(UVPT) &lt;&lt; PGSHIFT))</li>
-<li>不能，页表项对用户态只读。</li>
-</ul>
-<h3 id="thinking-47"><a class="markdownIt-Anchor" href="#thinking-47"></a> Thinking 4.7</h3>
-<ul>
-<li>缺页异常处理时响应时钟中断或其他中断，比如在缺页中断时修改有 PTE_COW 标记的页。</li>
-<li>因为可能出现异常重入，不保证 KSTACKTOP 处一直是当前异常处理的现场。</li>
-</ul>
-<h3 id="thinking-48"><a class="markdownIt-Anchor" href="#thinking-48"></a> Thinking 4.8</h3>
-<p>得不到许多权限，即使处理有误也不至于产生使操作系统崩溃的错误，不会改变内核所需的重要内存空间。</p>
-<h3 id="thinking-49"><a class="markdownIt-Anchor" href="#thinking-49"></a> Thinking 4.9</h3>
-<ul>
-<li>保证子进程如果在 exofork 之后被创建的过程中如果出现写入异常能够得到正确的处理</li>
-<li>会无法处理缺页中断错误，导致写时保护机制不能执行。</li>
-</ul>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<ul>
-<li>
-<p>需要充分理解内核态和用户态的区别，用户态只能访问对应的函数和内存空间等，才能进一步理解系统调用。</p>
-</li>
-<li>
-<p>理解系统调用的过程：从 syscall 的函数到 msyscall 到 do_syscall 到 sys 函数的整个过程是如何进行的，参数传递是怎么完成的等。</p>
-</li>
-<li>
-<p>Lab2 的内存映射如果没有理解依然会导致一部分题目出现问题，应当理解虚拟地址通过页表的映射方式，才能理解用户态的 mem_map。</p>
-</li>
-<li>
-<p>IPC的流程应当是先 recv 再 send</p>
-</li>
-<li>
-<p>需要搞清楚写时复制机制和 tlb_mod 异常的联系和 fork 时的处理顺序</p>
-</li>
-<li>
-<p>对 trapframe 的保存和访问需要清楚</p>
-</li>
-</ul>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>从 lab4 开始就没有实验讲解，需要认真在课下学习研究，并参加两次课上实验了，压力开始变大，需要更加努力更加专注，对 OS 课程需要投入更大精力，更加用心。</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab4/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -854,7 +540,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:14:01 / Modified: 11:15:07" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:01+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:14:01 / Modified: 11:36:50" itemprop="dateCreated datePublished" datetime="2023-07-05T11:14:01+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -875,55 +570,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-31"><a class="markdownIt-Anchor" href="#thinking-31"></a> Thinking 3.1</h3>
-<p>实验中 UVPT 往上到 ULIM 之间为进程自己的页表，即 UVPT 是页表基地址。这里访问 pgdir[PDX(UVPT)] 即为页目录中页表基地址对应的页目录项，将进程页目录的物理地址赋值到该项，即可保证能正确通过页表项虚拟地址找到物理地址。（这里保证了页目录中自映射的页目录项有效，有效即置位 PTE_V）</p>
-<h3 id="thinking-32"><a class="markdownIt-Anchor" href="#thinking-32"></a> Thinking 3.2</h3>
-<p>map_page 的参数 data 来自 elf_load_seg 传入的参数 data，调用 elf_load_seg 时传入的 data 是加载 ELF 时的数据地址 struct Env *e。这里这个参数用于在 map_page 中获取当前需要插入新页的页目录地址和 asid，因此不能省略。</p>
-<h3 id="thinking-33"><a class="markdownIt-Anchor" href="#thinking-33"></a> Thinking 3.3</h3>
-<p>可以根据页面加载起始地址位置和加载内容大致分为四类：</p>
-<ul>
-<li>从页面中间加载一部分程序段内容（到页面结尾或页面中间）</li>
-<li>从页面开始加载一部分程序段内容（到页面结尾或页面中间）</li>
-<li>从页面开始加载一部分程序段内容后，余下部分填入0</li>
-<li>从页面开始填入0（到页面结尾或页面中间）</li>
-</ul>
-<p>不论从页面开始还是从页面中间，都需要新分一页来填入内容。</p>
-<h3 id="thinking-34"><a class="markdownIt-Anchor" href="#thinking-34"></a> Thinking 3.4</h3>
-<p>这里的EPC是给CPU做处理的PC地址，CPU使用的是虚拟地址。</p>
-<h3 id="thinking-35"><a class="markdownIt-Anchor" href="#thinking-35"></a> Thinking 3.5</h3>
-<ul>
-<li>handle_int 在 kern/genex.S 中实现</li>
-<li>handle_mod 在 kern/genex.S 中跳转到 do_tlb_mod，在 kern/tlbex.c 中实现</li>
-<li>handle_tlb 在 kern/genex.S 中跳转到 do_tlb_refill，在 kern/tlb_asm.S 中实现</li>
-<li>handle_sys 在 kern/genex.S 中跳转到 do_syscall，在 lab4 中会实现</li>
-</ul>
-<h3 id="thinking-36"><a class="markdownIt-Anchor" href="#thinking-36"></a> Thinking 3.6</h3>
-<p>enable_irq 用于开启中断：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">LEAF(enable_irq) // declare leaf function &quot;enable_irq&quot;</span><br><span class="line">	// CU0 = 1 means Coprocessor 0 (CP0) is available</span><br><span class="line">	// IM4 = 1 means CP0 respond to 4th interruption</span><br><span class="line">	// IEc = 1 means allow interruption</span><br><span class="line">	li      t0, (STATUS_CU0 | STATUS_IM4 | STATUS_IEc) // set t0 to these 3 status bits</span><br><span class="line">	mtc0    t0, CP0_STATUS // set these 3 status bits to CP0 status register</span><br><span class="line">	jr      ra // return</span><br><span class="line">END(enable_irq)</span><br></pre></td></tr></table></figure>
-<p>timer_irq 用于禁止中断并跳转到 schedule：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">timer_irq:</span><br><span class="line">	sw      zero, (KSEG1 | DEV_RTC_ADDRESS | DEV_RTC_INTERRUPT_ACK) // write 0 to RTC_INTERRUPT_ACK to avoid interruption</span><br><span class="line">	li      a0, 0			// set first parameter to 0 (yield = 0)</span><br><span class="line">	j       schedule	// call schedule()</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-37"><a class="markdownIt-Anchor" href="#thinking-37"></a> Thinking 3.7</h3>
-<p>硬件按照时钟每次产生时钟中断时：</p>
-<ul>
-<li>根据 exception_handlers 的指定，是时钟中断，调用 handle_int</li>
-<li>检查是否允许所有中断和是否允许时钟中断，如果允许，跳转到 timer_irq 处理时钟中断</li>
-<li>暂时禁止中断，调用 schedule() ，参数 yield = 0</li>
-<li>如果未调度进程 / 当前进程时间片耗尽 / 当前进程被阻塞或退出则切换进程</li>
-<li>调度结束，结束中断处理，允许中断</li>
-</ul>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<ul>
-<li>env_free_list 是 LIST，对应 field 是 env_link，而 env_sched_list 是 TAILQ，对应 field 是env_sched_link，不能混用。</li>
-<li>env_alloc 中对没有空闲进程或调用的函数运行错误等情况一定要返回错误值，类似的，所有 int 返回值的函数对于函数内任何可能运行错误的地方都要加以判断并返回对应错误值，调用返回 int 的函数时都要判断返回值并判断是否返回错误值（可以使用 try() ）</li>
-<li>有些时候调用函数时会传入 int 等类型作为地址使用，这时函数要求的类型可能是 void *，如果要消除 warning 可以考虑加上类型转换再传入函数</li>
-<li>set a to b 的意思是 a = b，即把 b 的值赋值给 a。</li>
-<li>没有 parent 的 env，parent_id 是 0。</li>
-</ul>
-<h2 id="实验感想"><a class="markdownIt-Anchor" href="#实验感想"></a> 实验感想</h2>
-<p>lab3 主要学习了进程，核心内容是对于 PCB 的操作处理，同时还简单引入了异常处理的初步流程，但是涉及到异常处理的部分更多是复制粘贴代码，后续还需要在这个基础上再多多了解一下异常处理流程（但其实完成 lab4 的学习之后已经了解了不少异常处理相关的内容）。</p>
-<p>进程本身调度想必是很复杂的内容，在考前还需要多多复习练习读代码。</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab3/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -967,7 +622,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:13:59 / Modified: 11:14:49" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:59+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:13:59 / Modified: 11:36:47" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:59+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -988,33 +652,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
-<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
-<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
-<p>使用我们编写的readelf 解析 target/mos 得到：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
-<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
-<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
-<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
-<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
-<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
-<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
-<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
-<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
-<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
-<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
-<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
-<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab1/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1058,7 +704,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 11:13:53 / Modified: 11:14:34" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:53+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 11:13:53 / Modified: 11:36:43" itemprop="dateCreated datePublished" datetime="2023-07-05T11:13:53+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OS/" itemprop="url" rel="index"><span itemprop="name">OS</span></a>
+                </span>
             </span>
 
           
@@ -1079,68 +734,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
-<h3 id="thinking-01"><a class="markdownIt-Anchor" href="#thinking-01"></a> Thinking 0.1</h3>
-<p>三次运行 git status 时README.txt位置的对比：</p>
-<ul>
-<li>Untracked：此时位于“未跟踪的文件”中</li>
-<li>Stage：此时位于“要提交的变更：新文件：”中</li>
-<li>Modified：此时位于“尚未暂存以备提交的变更”中</li>
-</ul>
-<p>分别对应文件在Git中的三种状态，其中第一次和第三次不一样，区别在于第一次时未跟踪文件，第三次时已跟踪文件，虽然加入暂存区都使用git add命令，但是实际上处于两种不同状态（未跟踪和已修改）</p>
-<h3 id="thinking-02"><a class="markdownIt-Anchor" href="#thinking-02"></a> Thinking 0.2</h3>
-<ul>
-<li>Add the file = “git add {filename}”</li>
-<li>Stage the file = “git add {filename}”</li>
-<li>Commit = “git commit”</li>
-</ul>
-<h3 id="thinking-03"><a class="markdownIt-Anchor" href="#thinking-03"></a> Thinking 0.3</h3>
-<ol>
-<li>“git checkout – print.c”</li>
-<li>“git reset HEAD print.c” &amp; “git checkout – print.c”</li>
-<li>“git rm --cached hello.txt”</li>
-</ol>
-<h3 id="thinking-04"><a class="markdownIt-Anchor" href="#thinking-04"></a> Thinking 0.4</h3>
-<ul>
-<li>回退到HEAD^后，&quot;git log&quot;返回了到2为止的提交（提交1和提交2）</li>
-<li>按提交1的哈希值回退后，&quot;git log&quot;返回了到1为止的提交（仅提交1）</li>
-<li>输入之前提交3的哈希值reset后，&quot;git log&quot;回到了未回退的状态（提交1、2和3）</li>
-</ul>
-<h3 id="thinking-05"><a class="markdownIt-Anchor" href="#thinking-05"></a> Thinking 0.5</h3>
-<p>以下是执行命令和结果：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> first</span></span><br><span class="line">first</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> second &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">second</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> third &gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> forth &gt;&gt; output.txt</span></span><br><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">cat</span> output.txt</span></span><br><span class="line">third</span><br><span class="line">forth</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-06"><a class="markdownIt-Anchor" href="#thinking-06"></a> Thinking 0.6</h3>
-<p>以下是command的内容：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;echo Shell Start...&quot; &gt; test</span><br><span class="line">echo &quot;echo set a = 1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;a=1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set b = 2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;b=2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo set c = a+b&quot; &gt;&gt; test</span><br><span class="line">echo &quot;c=\$[\$a+\$b]&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo c = \$c&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save c to ./file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$c&gt;file1&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save b to ./file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$b&gt;file2&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save a to ./file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo \$a&gt;file3&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file1 file2 file3 to file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file1&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file2&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file3&gt;&gt;file4&quot; &gt;&gt; test</span><br><span class="line">echo &quot;echo save file4 to ./result&quot; &gt;&gt; test</span><br><span class="line">echo &quot;cat file4&gt;&gt;result&quot; &gt;&gt; test</span><br></pre></td></tr></table></figure>
-<p>以下是result文件的内容：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">3</span><br><span class="line">2</span><br><span class="line">1</span><br></pre></td></tr></table></figure>
-<p>解释说明（按照test中的运行情况描述）：</p>
-<ul>
-<li>首先为a、b赋值，再根据a+b给c赋值，得到a=1,  b=2, c=3</li>
-<li>然后将c, b, a分别写入到file1, file2, file3, 三个文件内容分别为3, 2, 1</li>
-<li>然后按file1, file2, file3的顺序依次将内容写入file4，再将file4写入result</li>
-</ul>
-<p>因此result中分别三行为3，2，1。</p>
-<p><strong>echo echo Shell Start 与 echo `echo Shell Start`是否有区别</strong></p>
-<p>有区别。前者输出&quot;echo Shell Start&quot;，后者输出&quot;Shell Start&quot;。</p>
-<p><strong>echo echo $c&gt;file1 与 echo`echo $c&gt;file1`是否有区别</strong></p>
-<p>有区别。前者会写入&quot;echo ${c}“，后者只会写入”${c}“，且前者在shell中没有输出，后者会输出一个空换行，其中”${c}&quot;指shell中变量c的值。</p>
-<h2 id="2-难点分析"><a class="markdownIt-Anchor" href="#2-难点分析"></a> 2 难点分析</h2>
-<p>本次课下实验中大致可以按知识点分为C部分、Makefile部分和Shell部分。其中C部分均为大一基础知识，不涉及难点。下面主要分析Makefile和Shell涉及的难点。</p>
-<h3 id="shell-取第x行内容"><a class="markdownIt-Anchor" href="#shell-取第x行内容"></a> Shell 取第x行内容</h3>
-<p>使用 “cat {filename} | tail -n +{x} | head -n 1” 取filename文件的第x行。具体来说是用cat取全文后管道传入tail命令由于带&quot;+&quot;，因此会输出文件从第x行开始一直到结尾的内容进入head，而head会输出所收到内容的第一行，因此得到所需的第x行内容。如果需要第x行开始的共y行内容，将1改为y即可。</p>
-<h3 id="shell-变量自增"><a class="markdownIt-Anchor" href="#shell-变量自增"></a> Shell 变量自增</h3>
-<p>要写成&quot;a=$[$a+1]“或者&quot;a=$(($a+1))”</p>
-<h3 id="grep"><a class="markdownIt-Anchor" href="#grep"></a> grep</h3>
-<p>-n可以输出行号在最前，而-o可以只输出正则匹配到的部分。</p>
-<h3 id="makefile"><a class="markdownIt-Anchor" href="#makefile"></a> Makefile</h3>
-<p>.SUFFIXES可以指定处理某种固定后缀名文件的方式</p>
-<h3 id="gcc"><a class="markdownIt-Anchor" href="#gcc"></a> gcc</h3>
-<p>多文件编译时先用-c编译到.o，再一同链接</p>
-<p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/OS-Lab0/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1184,7 +786,16 @@
               <span class="post-meta-item-text">Posted on</span>
               
 
-              <time title="Created: 2023-07-05 10:58:28 / Modified: 11:05:21" itemprop="dateCreated datePublished" datetime="2023-07-05T10:58:28+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 10:58:28 / Modified: 11:37:09" itemprop="dateCreated datePublished" datetime="2023-07-05T10:58:28+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hello-World/" itemprop="url" rel="index"><span itemprop="name">Hello World</span></a>
+                </span>
             </span>
 
           
@@ -1205,13 +816,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>This is a <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>e</mi><mi>s</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">test</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord mathnormal">s</span><span class="mord mathnormal">t</span></span></span></span>.<br />
-Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span><br />
-111 Aha! <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">E = mc^{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>.</p>
-<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mo fence="true">(</mo><mi>β</mi><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup><mo>+</mo><mi>c</mi><mrow><mo fence="true">(</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mn>3</mn></munderover><msub><mi>α</mi><mi>n</mi></msub><msub><mi>p</mi><mi>n</mi></msub><mo fence="true">)</mo></mrow><mo fence="true">)</mo></mrow><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>i</mi><mi mathvariant="normal">ℏ</mi><mfrac><mrow><mi mathvariant="normal">∂</mi><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mrow><mi mathvariant="normal">∂</mi><mi>t</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\left(\beta m c^2 + c \left(\sum_{n=1}^3\alpha_n p_n\right)\right) \psi(x,t)
-= i\hbar \frac{\partial \psi(x,t)}{\partial t}
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.068226em;vertical-align:-1.267113em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641079999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.882887em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.267113em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.0037em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.113em;vertical-align:-0.686em;"></span><span class="mord mathnormal">i</span><span class="mord">ℏ</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal">t</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/Test/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1244,7 +857,7 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2023/07/05/hello-world/" class="post-title-link" itemprop="url">Hello World</a>
+            <a href="/2023/07/05/hello-world/" class="post-title-link" itemprop="url">Hello World!</a>
         </h2>
 
         <div class="post-meta">
@@ -1253,8 +866,18 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
+              
 
-              <time title="Created: 2023-07-05 10:49:27" itemprop="dateCreated datePublished" datetime="2023-07-05T10:49:27+08:00">2023-07-05</time>
+              <time title="Created: 2023-07-05 10:49:27 / Modified: 11:36:16" itemprop="dateCreated datePublished" datetime="2023-07-05T10:49:27+08:00">2023-07-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hello-World/" itemprop="url" rel="index"><span itemprop="name">Hello World</span></a>
+                </span>
             </span>
 
           
@@ -1275,21 +898,15 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
-<h3 id="create-a-new-post"><a class="markdownIt-Anchor" href="#create-a-new-post"></a> Create a new post</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="run-server"><a class="markdownIt-Anchor" href="#run-server"></a> Run server</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="generate-static-files"><a class="markdownIt-Anchor" href="#generate-static-files"></a> Generate static files</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="deploy-to-remote-sites"><a class="markdownIt-Anchor" href="#deploy-to-remote-sites"></a> Deploy to remote sites</h3>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-
+          <p> </p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2023/07/05/hello-world/">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
     </div>
 
@@ -1373,6 +990,12 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
           <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">posts</span>
         </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">

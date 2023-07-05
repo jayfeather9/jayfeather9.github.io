@@ -65,6 +65,9 @@
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
       <tags>
         <tag>OS</tag>
       </tags>
@@ -99,6 +102,9 @@
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
       <tags>
         <tag>OS</tag>
       </tags>
@@ -307,6 +313,12 @@
 <h4 id="free_fat_cluster_entriesclus"><a class="markdownIt-Anchor" href="#free_fat_cluster_entriesclus"></a> free_fat_cluster_entries(clus)</h4>
 <p>释放一串簇，即从簇号 clus 开始的，直到 FAT 表项为 0xFFFF 的所有簇，将这些簇对应表项设为 0x0。正常运行返回 0。</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>OS</tag>
+      </tags>
   </entry>
   <entry>
     <title>OS Lab5</title>
@@ -389,6 +401,9 @@
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
       <tags>
         <tag>OS</tag>
       </tags>
@@ -445,6 +460,9 @@
 <p>lab3 主要学习了进程，核心内容是对于 PCB 的操作处理，同时还简单引入了异常处理的初步流程，但是涉及到异常处理的部分更多是复制粘贴代码，后续还需要在这个基础上再多多了解一下异常处理流程（但其实完成 lab4 的学习之后已经了解了不少异常处理相关的内容）。</p>
 <p>进程本身调度想必是很复杂的内容，在考前还需要多多复习练习读代码。</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
       <tags>
         <tag>OS</tag>
       </tags>
@@ -513,6 +531,12 @@
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>从 lab4 开始就没有实验讲解，需要认真在课下学习研究，并参加两次课上实验了，压力开始变大，需要更加努力更加专注，对 OS 课程需要投入更大精力，更加用心。</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>OS</tag>
+      </tags>
   </entry>
   <entry>
     <title>OS Lab6</title>
@@ -563,6 +587,12 @@
 <p>Lab6 的完成，有一种为半个多学期的努力画上句点的感觉。在看到（虽然大多数代码都不是）自己写的操作系统终于能跑出一个像样的 shell 界面时，还是很有成就感的。相应的，Lab6 的相关内容也显得综合性较强，如果对前面的 Lab 有足够的了解其实实现起来相对轻松，但是如果知识有漏洞可能就不会那么顺利。</p>
 <p>祝贺操作系统实验完结！</p>
 ]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>OS</tag>
+      </tags>
   </entry>
   <entry>
     <title>Test</title>
@@ -574,12 +604,15 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
 = i\hbar \frac{\partial \psi(x,t)}{\partial t}
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.068226em;vertical-align:-1.267113em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641079999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.882887em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.267113em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.0037em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.113em;vertical-align:-0.686em;"></span><span class="mord mathnormal">i</span><span class="mord">ℏ</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal">t</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
 ]]></content>
+      <categories>
+        <category>Hello World</category>
+      </categories>
       <tags>
-        <tag>a b c d,e</tag>
+        <tag>Test</tag>
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
+    <title>Hello World!</title>
     <url>/2023/07/05/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
 <h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
@@ -596,5 +629,11 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
+      <categories>
+        <category>Hello World</category>
+      </categories>
+      <tags>
+        <tag>Test</tag>
+      </tags>
   </entry>
 </search>
