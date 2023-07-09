@@ -762,4 +762,56 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
         <tag>ML</tag>
       </tags>
   </entry>
+  <entry>
+    <title>寄存器分配笔记1</title>
+    <url>/2023/07/09/LLVM-Reg-Alloc-1/</url>
+    <content><![CDATA[<p>有无限多个虚拟寄存器——对应实际CPU中有有限个寄存器。</p>
+<p>寄存器分配前后分别会有两次指令调度</p>
+<p>常见的寄存器分配算法：</p>
+<ul>
+<li>PBQ</li>
+<li>Greedy 运行时间短</li>
+<li>Basic 编译快</li>
+<li>Fast 编译快</li>
+</ul>
+<p>整体流程：</p>
+<p>生命周期分析——权重计算——构造优先队列——分配寄存器——弹出无法分配的寄存器</p>
+<h2 id="生命周期分析"><a class="markdownIt-Anchor" href="#生命周期分析"></a> 生命周期分析</h2>
+<p>可以写成单独的 Pass，是计算每个寄存器的使用生命周期。</p>
+<p>所谓生命周期就是一个寄存器从一次定义到下一次定义前的最后一次使用的周期，如下示例：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">BB1:</span><br><span class="line">%<span class="number">1</span> = <span class="number">23</span>; <span class="comment">// 01</span></span><br><span class="line">%<span class="number">2</span> = %<span class="number">1</span> + <span class="number">2</span>; <span class="comment">// 02</span></span><br><span class="line"><span class="keyword">goto</span> BB2; <span class="comment">// 03</span></span><br><span class="line"></span><br><span class="line">BB2:</span><br><span class="line">... <span class="comment">// 04 - 12</span></span><br><span class="line">%<span class="number">3</span> = %<span class="number">1</span> + <span class="number">1</span>; <span class="comment">// 12</span></span><br><span class="line"><span class="keyword">goto</span> BB3; <span class="comment">// 13</span></span><br><span class="line"></span><br><span class="line">BB3:</span><br><span class="line"><span class="comment">// 14 - 21</span></span><br><span class="line">%<span class="number">4</span> = %<span class="number">3</span> + %<span class="number">2</span>; <span class="comment">// 22</span></span><br><span class="line"><span class="keyword">return</span>; <span class="comment">// 23</span></span><br></pre></td></tr></table></figure>
+<p>每条语句之后的注释标注了其对应的语句编号，则各个变量生命周期如下：</p>
+<p>%1 生命周期从 01 开始，在 BB1 中到 02 结束，在 BB2 中到 12 结束。</p>
+<p>%2 生命周期从 02 开始，在 BB1 中到 02 结束，在 BB3 中到 22 结束。</p>
+<p>%3 生命周期从 12 开始，在 BB2 中到 12 结束，在 BB3 中到 22 结束。</p>
+<p>（生命周期包括：如果单基本块则从定义到最后一次使用，如果跨基本块则在定义基本块中从定义到基本块结束，在其他使用基本块中从开头到最后一次使用）</p>
+<h2 id="权重计算"><a class="markdownIt-Anchor" href="#权重计算"></a> 权重计算</h2>
+<p>计算一个寄存器的<strong>重要程度</strong>，代表它获得寄存器分配的重要权重高低。</p>
+<p>简单的方法包括：如果在一个常用循环中使用则权重高，如果寄存器相关访问少或简单则权重低。生命周期越长，权重越低。</p>
+<p>分配权重：</p>
+<p>如果只在一个基本块使用，权重低。</p>
+<p>在多个基本块都要使用，权重高。</p>
+<p>以<strong>分配权重</strong>大小设优先队列，将各个寄存器入队。</p>
+<h2 id="寄存器分配"><a class="markdownIt-Anchor" href="#寄存器分配"></a> 寄存器分配</h2>
+<p>从优先队列依次取寄存器，分配到物理寄存器。</p>
+<p>分配时参考生命周期冲突，如果没有生命周期冲突则可以共用寄存器。</p>
+<p>每次取寄存器后，如果和当前所有物理寄存器分配的寄存器生命周期都有冲突，则比较前述重要权重（不是分配权重），如果更高则替换掉现有分配的寄存器。</p>
+<p>如果更低，则考虑能否进行拆分，即将生命周期拆分到多个不同的寄存器上，如第一段时4号寄存器空闲，第二段时5号寄存器空闲，则通过第一段分给4号，第二段分给5号，第二段开头插入一个move指令将4号的值复制给5号实现。如果这种拆分有益于速度，则执行拆分。</p>
+<p>实际LLVM操作中不会拆分后直接插入，而是先计算合适的拆分位置，然后进行拆分，拆分后将原有的寄存器拆分为两个不同的寄存器重新放入优先队列，再按前述规则进行出队和插入等操作。</p>
+<h2 id="spill-通过内存周转"><a class="markdownIt-Anchor" href="#spill-通过内存周转"></a> Spill （通过内存周转）</h2>
+<p>将不参与计算时的指令部分加入load/store指令，从而拆分成两个生命周期更短的寄存器，再尝试进行插入。</p>
+<h2 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h2>
+<p>上述LLVM的Greedy分配方法主要关注点在于用最少的物理寄存器来进行分配，这样可以尽可能减少寄存器溢出，但是会有局限性——如果在寄存器足够的情况下，用极可能多的寄存器能够提升并行度，从而提高速度（e.g. 流水线中如果有寄存器依赖可能会降低速度）</p>
+<p>Register Allocatiion for Compressed ISAs in LLVM</p>
+]]></content>
+      <categories>
+        <category>PL</category>
+      </categories>
+      <tags>
+        <tag>PL</tag>
+        <tag>LLVM</tag>
+        <tag>编译</tag>
+        <tag>编译后端</tag>
+      </tags>
+  </entry>
 </search>
