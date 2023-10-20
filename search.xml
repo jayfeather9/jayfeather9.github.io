@@ -1,6 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>COINS Essay Note</title>
+    <url>/2023/07/05/COINS-Essay-Note/</url>
+    <content><![CDATA[<p>Compositional Human-Scene Interaction Synthesis with Semantic Control</p>
+<p>实现了一种通过高级语义规范生成给定3D场景中的人物动作的方法，比如“坐在椅子上”等。支持人物与3D环境的自然交互，支持多种交互的组合，通过扩展PROX数据集对比现有方法实现了更好的效果。</p>
+<p>语义示例：躺在沙发上、坐在桌子上、摸椅子、躺在椅子上、坐在地板上、摸床、坐在柜子上且摸床、站在地板上且摸显示器、站在地板上且摸桌子等。（不需要额外训练就能支持多种要求的组合）</p>
+<p>关注重点：<strong>语义、交互、动作生成、动作组合</strong></p>
+<h2 id="计算预设"><a class="markdownIt-Anchor" href="#计算预设"></a> 计算预设</h2>
+<h3 id="人体表示"><a class="markdownIt-Anchor" href="#人体表示"></a> 人体表示</h3>
+<p>使用SMPL-X模型表示，一个人被表示为顶点、面片和接触信息的集合。具体来说，存储了655个顶点的坐标、1296个面片的对应三顶点的编号、655个0/1接触特征，用于表述顶点是否和场景有接触。（简化了SMPL-X模型的顶点/面片数量，以方便计算）接触信息的计算方法为：如果某个顶点距离场景物体过近（低于某个值）则为1，即接触，否则为0，即未接触。</p>
+<h3 id="场景表示"><a class="markdownIt-Anchor" href="#场景表示"></a> 场景表示</h3>
+<p>场景被表示为物品实体的集合。每个物品被表示为8192个点的点云集合，每个点包括9维信息：位置、颜色和法线方向。如此表示是为了通用性，与以往方法将场景物体分类表示为独热码区分开来。</p>
+<h3 id="交互表示"><a class="markdownIt-Anchor" href="#交互表示"></a> 交互表示</h3>
+<p>一个交互包括一个人体信息与一个包含了多个原子交互的集合，因为一种交互动作可能包括了不同部位和不同场景位置的接触。每个原子交互包括一对独热码，分别对应动作和物体，如“坐、椅子”，“触摸、桌子”等等。</p>
+<p>注：这里的“桌子”和“椅子”不是泛指所有，而是作者直接在场景中为每个物体定义了一个独热码，在这种交互信息输入中直接指定，要和哪一个物体进行交互。因此后文中网络结构里可以直接将动作独热码和对应的物体进行对应。</p>
+<h2 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h2>
+<h3 id="总览"><a class="markdownIt-Anchor" href="#总览"></a> 总览</h3>
+<p>生成的输入是若干个如上文一样动作和物体对，如“坐、椅子”+“触摸、桌子”等。生成的输出是人体的骨骼动作。</p>
+<p>生成被分为两个部分，首先根据场景信息和交互信息，在场景中生成一个合适的骨盆位置和朝向，这是第一次生成。其次再将场景信息转换为骨盆的局部坐标系信息后，进行第二次生成，生成人体的具体动作信息。两次生成都是由一种基于transformer的cVAE网络完成，分别叫PelvisVAE和BodyVAE。</p>
+<h3 id="网络细节"><a class="markdownIt-Anchor" href="#网络细节"></a> 网络细节</h3>
+<p>首先来看网络的场景信息输入。场景中的每个物体被表示为前文所述8192个点的点云后，输入一个PointNet++（一个将大量点的信息进行编码抽象，取出其中重要信息的网络，可学习）后得到256个点组成的点云。之后，将和物体相关的动作作为（可学习的）embedding嵌入到这256个点的信息中。</p>
+<p>PointNet++抽象过程：8192*(3+6) -&gt; 1024*(3+96) -&gt; 256*(3+256) -&gt; 256*D，前两个是经过集合抽象层，第三个则是一个线性层，将抽象出来的信息编码为transformer需要的D维输入向量。</p>
+<p>而人体信息输入则就是简单的将前述由三种信息组成的人体表示加上由顶点索引决定的positional embedding后，通过一个线性层映射到指定的输入维度，和上述场景信息一同输入到Encoder中。</p>
+<p>上述信息会被输入到一个四层的transformer-encoder中，得到输入交互预测出的隐空间，将隐空间信息和与人体信息相关的模板信息（加上positional embedding）一同输入到transformer-decoder当中，得到所预测的身体表示。其中BodyVAE最后输出的结果会经过一个包含六个线性层+残差链接的MLP得到最终输出的SMPL-X身体表示。</p>
+<h3 id="loss"><a class="markdownIt-Anchor" href="#loss"></a> Loss</h3>
+<p>PelvisVAE的Loss包括位置和朝向和Loss加上KL Loss（见后）。</p>
+<p>BodyVAE的Loss由以下这些部分组成：</p>
+<h4 id="交互loss"><a class="markdownIt-Anchor" href="#交互loss"></a> 交互Loss</h4>
+<p>交互Loss包括对身体655个顶点每个点的如下计算的求和：</p>
+<p>对于每一个点，计算该点和交互对应的物体的所有点的最小距离。</p>
+<p>即，该Loss鼓励身体每一个顶点都与交互对应物体（的任意位置）有零距离接触。</p>
+<h4 id="mesh重建loss"><a class="markdownIt-Anchor" href="#mesh重建loss"></a> mesh重建Loss</h4>
+<p>mesh重建Loss用于使重建所得的人体更加真实，由以下几个项组成：顶点坐标Loss判断顶点坐标变化、法线Loss判断法线角度变化、边长Loss判断每个面片的各边长度变化、正常一致性Loss用于使相邻面的法线变化更加平滑。</p>
+<h4 id="接触特征重建loss"><a class="markdownIt-Anchor" href="#接触特征重建loss"></a> 接触特征重建Loss</h4>
+<p>用于表达接触特征是否有被正常重建，通过计算生成所得人体各个顶点的0/1接触特征和应有的0/1接触特征这两个向量之间的BCE值得到。</p>
+<h4 id="kl-loss"><a class="markdownIt-Anchor" href="#kl-loss"></a> KL Loss</h4>
+<p>通过将Loss中加入 <a href="https://blog.csdn.net/wr1997/article/details/115255712">KL散度</a> 来避免后验失效问题。该KL散度经过一个Charbonnier函数。</p>
+<h4 id="smpl-x回归loss"><a class="markdownIt-Anchor" href="#smpl-x回归loss"></a> SMPL-X回归Loss</h4>
+<p>包括了SMPL-X身体参数对应预测值和真实值相减的L2范数，加上映射为网格顶点的SMPL-X模型对应预测值和真实值的差值的模长。</p>
+<h3 id="组合式骨盆生成"><a class="markdownIt-Anchor" href="#组合式骨盆生成"></a> 组合式骨盆生成</h3>
+<p>这里通过一些计算和训练方式实现了不需要组合式交互数据训练的组合式动作生成。首先是骨盆生成。前述的网络能够对每对交互任务中最后的骨盆生成任务输出一个骨盆位置的概率分布，而对组合式生成任务，本文通过实现如下的一个优化过程实现对多个交互任务的骨盆位置生成：对每个交互任务，保证其得到的生成结果概率尽量大的同时，使得多个生成结果的骨盆位置尽可能接近。再将如此得到的每个交互生成的骨盆位置取均值，即为最终的组合式骨盆生成位置。</p>
+<h3 id="组合式身体生成"><a class="markdownIt-Anchor" href="#组合式身体生成"></a> 组合式身体生成</h3>
+<p>一个交互动作往往不需要用到全身所有位置与目标物体的接触。因此本文将全身分为上肢、下肢和躯干三个部分，同时对于每个动作，计算这个动作对于每个身体部分的发生接触的概率，概率被表示为该动作对应所有接触的顶点数量中位于某个部位的顶点数量占比。如果某个动作在某个部位的接触概率显著大于其他动作，则将其他动作在该部位的注意力设置为0。</p>
+]]></content>
+      <categories>
+        <category>VR</category>
+      </categories>
+      <tags>
+        <tag>VR</tag>
+        <tag>ML</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>编译后端笔记-图着色法-1</title>
+    <url>/2023/07/11/Compiler-Notes-1/</url>
+    <content><![CDATA[<h2 id="图着色法-细节"><a class="markdownIt-Anchor" href="#图着色法-细节"></a> 图着色法-细节</h2>
+<h3 id="函数活跃寄存器计算"><a class="markdownIt-Anchor" href="#函数活跃寄存器计算"></a> 函数活跃寄存器计算</h3>
+<p>这部分内容简单来说，就是对每个函数计算其各个基本块的活跃出入寄存器，也就是进入和离开基本块时，需要保持活跃（其值有意义/有用）的寄存器。</p>
+<p>首先，我们遍历每个基本块，先计算其内部的依赖关系。简便起见use，我们倒序遍历基本块内的指令，并维护两个集合：def 和 live_use，分别代表“该基本块中新定义了的寄存器”与“该基本块中未定义但使用了其值的寄存器”，注意这里定义实际上指的是重新赋值。然后，在遍历过程中，对每一条指令，如果该指令为寄存器赋值（即对于该指令的 dst 寄存器），则该寄存器在当前位置一定是新定义了的，一定不是未定义但使用的，就从 live_use 中移除，向 def 加入。类似的，如果该指令使用了某寄存器值（即对于该指令的 src 寄存器），则该寄存器在当前位置一定是未定义但被使用，一定不是新定义的，从 def 中移除，向 live_use 中加入。注意到有的指令可能有寄存器同时在 def 和 src 中，由于我们是倒序遍历，因此应该按上述叙述顺序判断并处理。</p>
+<p>这时，容易注意到所有的 live_use 都是满足我们对 live_in 要求的寄存器，因此赋值 live_in = live_use，但是这里的 live_in 还不全，需要后续处理。</p>
+<p>为了处理 live_out，即计算哪些基本块新定义的寄存器是后续需要被使用到的寄存器，我们定义一个队列，存储基本块到寄存器的使用关系，每个 std::pair 代表某个块新定义了某个寄存器。我们将所有当前基本块 live_use 的寄存器和该块一起推入队列。</p>
+<p>然后我们遍历队列，每次取队列头元素，获取当前块和当前块使用（但未定义）的某个寄存器，对于该块的所有前继基本块，如果前继的 live_out 中没有当前这个寄存器，则将其加入。这里需要判断一件事——有可能该寄存器也不是这个块定义的，如果不是，则需要将这个前继块和该寄存器再次推入队列，并为这个块的 live_in 记录下这个寄存器。</p>
+<h3 id="建图"><a class="markdownIt-Anchor" href="#建图"></a> 建图</h3>
+<p>在计算了各个基本块的出入活跃寄存器后，就可以开始建图了。我们使用邻接表存图，具体来说，使用如下的数据结构存储：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">std::vector&lt;<span class="type">char</span>&gt; appeared;</span><br><span class="line">std::vector&lt;std::set&lt;<span class="type">int</span>&gt;&gt; edges;</span><br></pre></td></tr></table></figure>
+<p>两个动态数组的大小都是寄存器最大值。其中前者是一个记录某寄存器值是否出现在本函数中的布尔值数组，由于一些 C++ 特性，使用 char 类型。后者则是用于存边的，其内层是记录某寄存器和哪个寄存器有连边的集合，使用集合是为了保证不重复处理。</p>
+<p>建图过程中，由于前面我们已经计算了基本块之间的活跃关系，现在我们只需要遍历每一个基本块，处理块内的寄存器活跃关系并连边即可。</p>
+<p>在遍历每个基本块时，我们记录一个动态数组 live，存储“当前”的活跃寄存器，因为我们是对所有指令倒序遍历的，因此该数组的初始值为 live_out，即基本块结束时仍需要活跃的寄存器。</p>
+<p>首先，基本块结束时所有的需要活跃的寄存器一定是互斥的（互相冲突的，不能存储在相同寄存器中的，后同），因此首先需要对它们两两连边。因此我们设置一个空的动态数组 tmp，将所有的 live 中的寄存器推入。</p>
+<p>其次，我们需要将最后一条语句中的 dst 寄存器也推入 tmp 中，保证它和其他 live_out 的寄存器的互斥关系，原因后面解释。</p>
+<p>这时，tmp 中就存下了所有“在基本块结束时”互斥的寄存器，我们对其中的寄存器两两加边即可（注：图是无向图，所有的加边都是双向边）。</p>
+<p>然后就可以开始倒序遍历每条指令了。我们在遍历过程中不断维护 live 数组，具体来说，每当倒序遍历到一条新指令，这条指令如果对某寄存器进行了修改（即对于指令的 dst 寄存器来说），则该 dst 寄存器就不再 live，从 live 中移除。反之，如果使用了某寄存器的值（即对于指令的 src 寄存器来说），则此时（和从此时开始一直往前到该寄存器被定义，即被作为 dst）的这个 src 寄存器，就是活跃的，也就是说其值需要被保留，和其他所有的活跃寄存器互斥，将 src 和所有的 live 中寄存器连边，并将 src 推入 live 即可。</p>
+<p>这样一来，我们就处理好了所有的 src 寄存器之间的互斥关系，但是还需要处理 dst 和 src 之间的互斥关系。注意到：同语句的 src 和 dst 是不互斥的，因为比如 add s0, s0, s1 这种操作（即只要后续不再使用 src 的原值，则完全可以使用相同的 src 和 dst，在人工写汇编时也会常常这么做以实现 += 等效果）但是每一条语句的 dst 和这之后的所有 src （准确来说是所有活跃寄存器）是互斥的，这很容易理解，比如下列语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi %1, %2, 100 // 1</span><br><span class="line">mul %5, %3, %4 // 2</span><br><span class="line">mul %2, %1, %1 // 3</span><br></pre></td></tr></table></figure>
+<p>语句 2 中的 %5 和 %1 应当是互斥的，因为后面还需要用到 %1 的值，如果给 %1 和 %5 分配相同的寄存器，则后续语句 3 时使用 %1 时就得不到正确的值了，因为在语句 2 处被修改了。因此我们对上一句的 dst 寄存器和当前的所有 live 中的寄存器加边，保证其互斥。这里很容易发现，由于这样只能处理到第一条到倒数第二条语句的 dst，因为是对每条语句的“上一条”进行处理，因此最后一条语句的 dst 就没被处理，这也是前述处理最后一条语句 dst 的原因。</p>
+<p>最后，在每条指令开始遍历时新建一个空数组，将所有的当前的新活跃寄存器和上条语句的 dst 一同推入数组，并对数组中的元素两两建边即可。</p>
+]]></content>
+      <categories>
+        <category>PL</category>
+      </categories>
+      <tags>
+        <tag>PL</tag>
+        <tag>编译</tag>
+        <tag>编译后端</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GAParts Essay Note</title>
+    <url>/2023/07/05/GAParts-Essay-Note/</url>
+    <content><![CDATA[<h2 id="pointgroup"><a class="markdownIt-Anchor" href="#pointgroup"></a> PointGroup</h2>
+<p><img src="https://file.notion.so/f/s/137612d2-0f12-409f-9aed-41f834dba168/Untitled.png?id=16fc1a99-6642-4096-9202-6f9950433f8f&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=1hHO-l7iJqN4ITLhp7jzp2elJDPKRqy16dNtt1U5S5c&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<h3 id="backbone-network"><a class="markdownIt-Anchor" href="#backbone-network"></a> Backbone Network</h3>
+<p>场景以点云的形式输入进网络，每个点包括三维坐标和三维颜色信息。</p>
+<p>网络形式是一个U-Net（先对点体素化后，使用稀疏卷积SC和submanifold稀疏卷积SSC进行，得到的结果再从体素化生成回点值形式（Submanifold sparse convolutional networks, 2019）），通过网络后，每个点被提取出K维特征。</p>
+<h3 id="clustering"><a class="markdownIt-Anchor" href="#clustering"></a> Clustering</h3>
+<p>然后再从这K维特征中得到两样东西，（通过一个MLP得到）用于语义分割的一维标签S（同一类的标签值相同）和（通过同类点求位置的均值得到）用于预测目标中心位置的三维向量o（offset），指示对于该点，其所属的分割类的中心的方向。</p>
+<p>由于这种分类让每个点按类聚在一起，就可以根据点聚类之间的空位距离对点进行聚类。</p>
+<p>由于这种offset不总准确，论文将原位置p采得一个聚类结果，再由加上offset的新位置q采得一个聚类结果，将两个结果取并集，输入到ScoreNet中</p>
+<h3 id="score-net"><a class="markdownIt-Anchor" href="#score-net"></a> Score Net</h3>
+<p><img src="https://file.notion.so/f/s/16d54e66-b9dd-4151-8d98-911b5f7cde28/Untitled.png?id=abf52d35-dd50-4038-a2cf-9ecf64c09f2e&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=2Z-VtfRYILtiwq7K4ISo8q4OPvJwrxFGO5pOiXUv13k&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<p>对于每个聚类，该聚类i的Ni个点先前提取的K维特征信息构成Ni<em>K维聚类特征，位置构成Ni</em>3维位置特征，和之前类似的方法体素化（每个体素特征求平均）后输入SC和SSC的较小U-Net进一步提取特征后经过max-pooling得到一个聚类特征，进而输入MLP后经过Sigmoid函数得到最终分数Si</p>
+<p>最后用先前的聚类信息和得到的分数信息输入NMS输出最终聚类信息。</p>
+<h2 id="grl-gradient-reversal-layer"><a class="markdownIt-Anchor" href="#grl-gradient-reversal-layer"></a> GRL (<em><strong>*Gradient Reversal Layer)*</strong></em></h2>
+<p><img src="https://file.notion.so/f/s/9574a97d-7b95-4aa2-86eb-7811b3f951d9/v2-ebe7d65b70355baed5ca478173fe0695_r.jpg?id=4d40546b-f3ac-47d2-a43e-37c819d75624&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=SHmsYNLKJeJMveQWwixUuNvUyxOEeonKI1qITfD9X3w&amp;downloadName=v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" alt="v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" /></p>
+<h3 id="grl层"><a class="markdownIt-Anchor" href="#grl层"></a> GRL层</h3>
+<p>梯度下降是最小化目标函数，而GRL这一层的目的是“向负方向梯度上升”，其实就是最大化目标函数。</p>
+<h3 id="模型说明"><a class="markdownIt-Anchor" href="#模型说明"></a> 模型说明</h3>
+<p>上图绿色部分是特征提取，对应GAParts就是那个Sparse U-Net，提取特征F用的</p>
+<p>蓝色部分是处理分类任务用的，对应GAParts就是后续的聚类和score模块等</p>
+<p>粉色部分就是重点的domain classifier，是一个域分类器，本质上是一个判别器。</p>
+<h3 id="grl和domain-classifier的意义"><a class="markdownIt-Anchor" href="#grl和domain-classifier的意义"></a> GRL和domain classifier的意义</h3>
+<p>在训练中，绿色部分和粉色部分构成了一种类似GAN的结构，绿色部分作为生成器，粉色部分作为判别器，目标是让生成出来的feature趋于域自适应（域分类器尝试将feature进行分类，如果这种分类越来越难以进行，说明提取出来的feature就是共通的feature，也就趋向于域自适应了）</p>
+<h2 id="gaparts中的domain-invariant-feature-learning"><a class="markdownIt-Anchor" href="#gaparts中的domain-invariant-feature-learning"></a> GAParts中的Domain-invariant Feature Learning</h2>
+<p>总共提出了三种方法，均是对于domain-classifier的改进，用于使模型更加适应不同类型，能准确提取不同物体的特征。</p>
+<h3 id="part-oriented-feature-query"><a class="markdownIt-Anchor" href="#part-oriented-feature-query"></a> Part-oriented Feature Query</h3>
+<p>由于GAParts是对Parts的分类，因此实际上做分类器是对点向不同的结果label（即parts/clusters的编号i）分类。因此采用对于分数大于某阈值s的所有parts，计算分类器对其的loss再求均值的方法</p>
+<h3 id="multi-resolution"><a class="markdownIt-Anchor" href="#multi-resolution"></a> Multi-Resolution</h3>
+<p>由于部件大小不一，为了能适应多种大小，向Domain Classifier输入的feature来自三个不同大小的U-Net层，最后loss取加权总和。这样能让网络适应不同大小的部件。</p>
+<h3 id="distribution-balancing"><a class="markdownIt-Anchor" href="#distribution-balancing"></a> Distribution-Balancing</h3>
+<p>为了能使训练中对于不同类型不同种类的Parts训练成果比较均匀，采用了一种均匀分布的方法，具体来说是对前述Part-oriented Feature Query在求均值前加了一个权重，对于准确率更高的部分，los计算的就更小一些，同时对于域分布量更大的计算的更小一些。</p>
+]]></content>
+      <categories>
+        <category>VR</category>
+      </categories>
+      <tags>
+        <tag>VR</tag>
+        <tag>ML</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>寄存器分配笔记1</title>
+    <url>/2023/07/09/LLVM-Reg-Alloc-1/</url>
+    <content><![CDATA[<p>有无限多个虚拟寄存器——对应实际CPU中有有限个寄存器。</p>
+<p>寄存器分配前后分别会有两次指令调度</p>
+<p>常见的寄存器分配算法：</p>
+<ul>
+<li>PBQ</li>
+<li>Greedy 运行时间短</li>
+<li>Basic 编译快</li>
+<li>Fast 编译快</li>
+</ul>
+<p>整体流程：</p>
+<p>生命周期分析——权重计算——构造优先队列——分配寄存器——弹出无法分配的寄存器</p>
+<h2 id="生命周期分析"><a class="markdownIt-Anchor" href="#生命周期分析"></a> 生命周期分析</h2>
+<p>可以写成单独的 Pass，是计算每个寄存器的使用生命周期。</p>
+<p>所谓生命周期就是一个寄存器从一次定义到下一次定义前的最后一次使用的周期，如下示例：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">BB1:</span><br><span class="line">%<span class="number">1</span> = <span class="number">23</span>; <span class="comment">// 01</span></span><br><span class="line">%<span class="number">2</span> = %<span class="number">1</span> + <span class="number">2</span>; <span class="comment">// 02</span></span><br><span class="line"><span class="keyword">goto</span> BB2; <span class="comment">// 03</span></span><br><span class="line"></span><br><span class="line">BB2:</span><br><span class="line">... <span class="comment">// 04 - 12</span></span><br><span class="line">%<span class="number">3</span> = %<span class="number">1</span> + <span class="number">1</span>; <span class="comment">// 12</span></span><br><span class="line"><span class="keyword">goto</span> BB3; <span class="comment">// 13</span></span><br><span class="line"></span><br><span class="line">BB3:</span><br><span class="line"><span class="comment">// 14 - 21</span></span><br><span class="line">%<span class="number">4</span> = %<span class="number">3</span> + %<span class="number">2</span>; <span class="comment">// 22</span></span><br><span class="line"><span class="keyword">return</span>; <span class="comment">// 23</span></span><br></pre></td></tr></table></figure>
+<p>每条语句之后的注释标注了其对应的语句编号，则各个变量生命周期如下：</p>
+<p>%1 生命周期从 01 开始，在 BB1 中到 02 结束，在 BB2 中到 12 结束。</p>
+<p>%2 生命周期从 02 开始，在 BB1 中到 02 结束，在 BB3 中到 22 结束。</p>
+<p>%3 生命周期从 12 开始，在 BB2 中到 12 结束，在 BB3 中到 22 结束。</p>
+<p>（生命周期包括：如果单基本块则从定义到最后一次使用，如果跨基本块则在定义基本块中从定义到基本块结束，在其他使用基本块中从开头到最后一次使用）</p>
+<h2 id="权重计算"><a class="markdownIt-Anchor" href="#权重计算"></a> 权重计算</h2>
+<p>计算一个寄存器的<strong>重要程度</strong>，代表它获得寄存器分配的重要权重高低。</p>
+<p>简单的方法包括：如果在一个常用循环中使用则权重高，如果寄存器相关访问少或简单则权重低。生命周期越长，权重越低。</p>
+<p>分配权重：</p>
+<p>如果只在一个基本块使用，权重低。</p>
+<p>在多个基本块都要使用，权重高。</p>
+<p>以<strong>分配权重</strong>大小设优先队列，将各个寄存器入队。</p>
+<h2 id="寄存器分配"><a class="markdownIt-Anchor" href="#寄存器分配"></a> 寄存器分配</h2>
+<p>从优先队列依次取寄存器，分配到物理寄存器。</p>
+<p>分配时参考生命周期冲突，如果没有生命周期冲突则可以共用寄存器。</p>
+<p>每次取寄存器后，如果和当前所有物理寄存器分配的寄存器生命周期都有冲突，则比较前述重要权重（不是分配权重），如果更高则替换掉现有分配的寄存器。</p>
+<p>如果更低，则考虑能否进行拆分，即将生命周期拆分到多个不同的寄存器上，如第一段时4号寄存器空闲，第二段时5号寄存器空闲，则通过第一段分给4号，第二段分给5号，第二段开头插入一个move指令将4号的值复制给5号实现。如果这种拆分有益于速度，则执行拆分。</p>
+<p>实际LLVM操作中不会拆分后直接插入，而是先计算合适的拆分位置，然后进行拆分，拆分后将原有的寄存器拆分为两个不同的寄存器重新放入优先队列，再按前述规则进行出队和插入等操作。</p>
+<h2 id="spill-通过内存周转"><a class="markdownIt-Anchor" href="#spill-通过内存周转"></a> Spill （通过内存周转）</h2>
+<p>将不参与计算时的指令部分加入load/store指令，从而拆分成两个生命周期更短的寄存器，再尝试进行插入。</p>
+<h2 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h2>
+<p>上述LLVM的Greedy分配方法主要关注点在于用最少的物理寄存器来进行分配，这样可以尽可能减少寄存器溢出，但是会有局限性——如果在寄存器足够的情况下，用极可能多的寄存器能够提升并行度，从而提高速度（e.g. 流水线中如果有寄存器依赖可能会降低速度）</p>
+<p>Register Allocatiion for Compressed ISAs in LLVM</p>
+]]></content>
+      <categories>
+        <category>PL</category>
+      </categories>
+      <tags>
+        <tag>PL</tag>
+        <tag>编译</tag>
+        <tag>编译后端</tag>
+        <tag>LLVM</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>OS Lab0</title>
     <url>/2023/07/05/OS-Lab0/</url>
     <content><![CDATA[<h2 id="1-思考题"><a class="markdownIt-Anchor" href="#1-思考题"></a> 1 思考题</h2>
@@ -64,43 +245,6 @@
 <p>如果include了一些.h文件，需要加-I告诉gcc具体的include目录。</p>
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
 <p>Lab0作为引子性质的Lab，在经过CO的洗礼之后倒显得并没有想象的高压力。期待后续的内容！</p>
-]]></content>
-      <categories>
-        <category>OS</category>
-      </categories>
-      <tags>
-        <tag>OS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>OS Lab1</title>
-    <url>/2023/07/05/OS-Lab1/</url>
-    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
-<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
-<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
-<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
-<p>使用我们编写的readelf 解析 target/mos 得到：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
-<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
-<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
-<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
-<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
-<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
-<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
-<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
-<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
-<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
-<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
-<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
-<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
-<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
-<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
 ]]></content>
       <categories>
         <category>OS</category>
@@ -321,85 +465,34 @@
       </tags>
   </entry>
   <entry>
-    <title>OS Lab5</title>
-    <url>/2023/07/05/OS-Lab5/</url>
+    <title>OS Lab1</title>
+    <url>/2023/07/05/OS-Lab1/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
-<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
-<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
-<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
-<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
-<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
-<p>一个文件控制块大小为 BY2FILE = 256。</p>
-<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
-<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
-<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
-<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
-<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
-<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
-<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
-<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
-<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
-<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
-<p>SECT2BLK 一个磁盘块内的扇区数目</p>
-<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
-<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
-<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
-<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
-<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
-<p>MAXNAMELEN 文件名的最长大小（char数）</p>
-<p>MAXPATHLEN 路径名的最长大小（char数）</p>
-<p>NDIRECT 文件直接指针数量</p>
-<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
-<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
-<p>BY2FILE 文件控制块的大小（字节数）</p>
-<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
-<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
-<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
-<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
-<p>为文件描述符结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>u_int fd_dev_id 外设 id</li>
-<li>u_int fd_offset 读写的当前偏移量</li>
-<li>u_int fd_omode 文件打开方式，如只读</li>
-</ul>
-<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
-<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
-<ul>
-<li>struct Fd f_fd 对应的文件描述符</li>
-<li>u_int f_fileid 文件的 id</li>
-<li>struct File f_file 对应的文件系统控制块</li>
-</ul>
-<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
-<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
-<ul>
-<li>char f_name[MAXNAMELEN] 文件名</li>
-<li>uint32_t f_size 文件大小，单位字节</li>
-<li>uint32_t f_type 文件类型，文件或目录</li>
-<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
-<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
-<li>struct File *f_dir 父目录</li>
-<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
-</ul>
-<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
-<p>分为两种，同步消息和返回消息。</p>
-<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
-<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
+<h3 id="thinking-11"><a class="markdownIt-Anchor" href="#thinking-11"></a> Thinking 1.1</h3>
+<p>向objdump传入参数 -DS，-D代表反汇编所有内容，-S代表在结果中将十六进制汇编码和反汇编结果共同显示。</p>
+<p>使用MIPS交叉编译工具链得到的对应main.c的反汇编对应main部分如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">00000000 &lt;main&gt;:</span><br><span class="line">   0:	27bdffe0 	addiu	sp,sp,-32</span><br><span class="line">   4:	afbf001c 	sw	ra,28(sp)</span><br><span class="line">   8:	afbe0018 	sw	s8,24(sp)</span><br><span class="line">   c:	03a0f025 	move	s8,sp</span><br><span class="line">  10:	3c1c0000 	lui	gp,0x0</span><br><span class="line">  14:	279c0000 	addiu	gp,gp,0</span><br><span class="line">  18:	afbc0010 	sw	gp,16(sp)</span><br><span class="line">  1c:	3c020000 	lui	v0,0x0</span><br><span class="line">  20:	24440000 	addiu	a0,v0,0</span><br><span class="line">  24:	8f820000 	lw	v0,0(gp)</span><br><span class="line">  28:	0040c825 	move	t9,v0</span><br><span class="line">  2c:	0320f809 	jalr	t9</span><br><span class="line">  30:	00000000 	nop</span><br><span class="line">  34:	8fdc0010 	lw	gp,16(s8)</span><br><span class="line">  38:	00001025 	move	v0,zero</span><br><span class="line">  3c:	03c0e825 	move	sp,s8</span><br><span class="line">  40:	8fbf001c 	lw	ra,28(sp)</span><br><span class="line">  44:	8fbe0018 	lw	s8,24(sp)</span><br><span class="line">  48:	27bd0020 	addiu	sp,sp,32</span><br><span class="line">  4c:	03e00008 	jr	ra</span><br><span class="line">  50:	00000000 	nop</span><br><span class="line">  ...</span><br></pre></td></tr></table></figure>
+<h3 id="thinking-12"><a class="markdownIt-Anchor" href="#thinking-12"></a> Thinking 1.2</h3>
+<p>使用我们编写的readelf 解析 target/mos 得到：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0:0x0</span><br><span class="line">1:0x80010000</span><br><span class="line">2:0x80011d10</span><br><span class="line">3:0x80011d28</span><br><span class="line">4:0x80011d40</span><br><span class="line">5:0x0</span><br><span class="line">6:0x0</span><br><span class="line">7:0x0</span><br><span class="line">8:0x0</span><br><span class="line">9:0x0</span><br><span class="line">10:0x0</span><br><span class="line">11:0x0</span><br><span class="line">12:0x0</span><br><span class="line">13:0x0</span><br><span class="line">14:0x0</span><br><span class="line">15:0x0</span><br><span class="line">16:0x0</span><br></pre></td></tr></table></figure>
+<p>我们编写的 readelf 不能解析自身的原因是：hello在编译时加入了 -m32编译选项，而readelf没有，代表hello是按32位程序编译的，而readelf没有指定，按默认的64位编译。使用 objdump -h也能发现：hello 的类别是 ELF32，readelf的类别是 ELF64。</p>
+<h3 id="thinking-13"><a class="markdownIt-Anchor" href="#thinking-13"></a> Thinking 1.3</h3>
+<p>由指导书附录A.1部分可知，操作系统上电启动需要调用 bootloader 先由 ROM 中刻好的 stage1 初始化硬件，再将存储设备中的 stage2 部分代码放入 RAM 并调用。显然这里的启动入口地址对应 bootloader 的 stage2 所在的地址，而不是操作系统的内核入口。待 stage2 载入内核，设置好启动参数后，才会跳转到在固定的内核地址的内核部分。</p>
+<p>实验中，GXemul 本身支持加载 ELF 格式内核，所以启动流程被简化为直接加载内核到内存并跳转到内核的入口（具体内核各节的加载地址也可以由更改 Linker Script 文件来更改），因此只需要将内核放在规定好的内核入口处即可正常启动内核。</p>
 <h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
-<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
-<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
-<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
-<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
-<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
-<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
-<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
-<p>明确文件目录的结构关系以及内存使用即可。</p>
-<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
-<p>按照要求调用对应的函数即可。</p>
-<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
-<p>参考 write 即可。</p>
+<h3 id="指针基础"><a class="markdownIt-Anchor" href="#指针基础"></a> 指针基础</h3>
+<p>Exercise 1.1中我和其他同学发现一个共性问题，如下代码所示：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = ehdr + ehdr-&gt;e_shoff; <span class="comment">// wrong</span></span><br><span class="line">sh_table = binary + ehdr-&gt;e_shoff; <span class="comment">// right</span></span><br></pre></td></tr></table></figure>
+<p>前者错误，后者正确。主要是因为C语言的指针运算特性：某type类型的指针+1实际上会让指针地址值增加sizeof(type)，在本题情况下就是sizeof(Elf32_Ehdr)，但这显然不是offset对应的单位，因此应该更换成类型为void *的binary指针，或者采用下列这种写法：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">sh_table = (<span class="type">void</span> *)ehdr + ehdr-&gt;e_shoff;</span><br></pre></td></tr></table></figure>
+<h3 id="linker-script"><a class="markdownIt-Anchor" href="#linker-script"></a> Linker Script</h3>
+<p>Exercise 1.2中，需要注意空格和示例内容一样，不能少空格，不然会syntax error。（冒号左右和左右大括号的左右都要加空格）</p>
+<h3 id="printk"><a class="markdownIt-Anchor" href="#printk"></a> printk()</h3>
+<p>对于Exercise1.4，首先是涉及指针操作，不能搞混fmt和*fmt，即避免出现将fmt作为字符处理或进行类似*fmt++的操作。</p>
+<p>其次是注意每次循环间width, long_flag, neg_flag, ladjust, padc五个变量值要记得重置回默认值（可以在循环开头直接赋值默认值，也可以通过保证所有分支结构都写else的方式解决，我使用的是后者）。</p>
+<p>最后有一个需要略微阅读其他部分代码的地方：有符号整数对负数的处理。这里如果只是对负值进行判断并赋值neg_flag并传入的话是不够的，需要将num取负，因为print_num接收到的neg_flag仅用于指示是否输出负号，实际打印时永远按无符号数打印，所以需要取负。</p>
 <h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
-<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
+<p>刚开始阅读Lab1部分的时候还有种不知所云的感受，但是采取“先记住，往后慢慢读”的方式逐渐的也就理解了神奇的操作系统（很小的一部分）。Lab1整体能学到不少东西，不过代码部分还是相对简单，个人认为相比CO略显轻松，期待后续内容。</p>
 ]]></content>
       <categories>
         <category>OS</category>
@@ -539,6 +632,94 @@
       </tags>
   </entry>
   <entry>
+    <title>OS Lab5</title>
+    <url>/2023/07/05/OS-Lab5/</url>
+    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="thinking-51"><a class="markdownIt-Anchor" href="#thinking-51"></a> Thinking 5.1</h3>
+<p>kseg0 中有内核相关的各种数据如 pages 数组、envs 数组等，在kseg0中读写数据可能会对这些内容造成不赢的的修改。</p>
+<p>向 cache 的写入会被缓存，直到 cache 缺失进行替换时才会执行写入，这对于一些输出外设如音箱和显示屏等会造成输出信息的大量延迟。类似的，cache 缺失造成的延迟也会拖慢外设输入后的计算机反应速度。</p>
+<p>因此磁盘设备会更不容易出现错误，而外设会更容易出现错误。</p>
+<h3 id="thinking-52"><a class="markdownIt-Anchor" href="#thinking-52"></a> Thinking 5.2</h3>
+<p>一个磁盘块大小为 BY2BLK = BY2PG = 4096。</p>
+<p>一个文件控制块大小为 BY2FILE = 256。</p>
+<p>一个磁盘块最多存储 BY2BLK / BY2FILE = 4096 / 256 = 16 个文件控制块。</p>
+<p>按照 MOS 的简化存储方法，一个文件或目录恰好能存储一个磁盘块能装下的最大指针数量的磁盘块，即一个文件或目录下至多包含 BY2BLK / sizeof(uint32_t) = 4096 / 4 = 1024 个磁盘块。</p>
+<p>因此单个文件最大大小为 1024 * BY2BLK = 1024 * 4KB = 4MB。</p>
+<p>因此一个目录下至多有 1024 * BY2BLK / BY2FILE = 1024 * 16 = 16384 个文件。</p>
+<h3 id="thinking-53"><a class="markdownIt-Anchor" href="#thinking-53"></a> Thinking 5.3</h3>
+<p>在 MOS 中，我们相当于将整个磁盘都映射到了虚拟内存空间内，因此最大瓷盘大小为 DISKMAX = 1GB。</p>
+<h3 id="thinking-54"><a class="markdownIt-Anchor" href="#thinking-54"></a> Thinking 5.4</h3>
+<h4 id="fsservh"><a class="markdownIt-Anchor" href="#fsservh"></a> fs/serv.h</h4>
+<p>PTE_DIRTY 在页表项中的 ”磁盘脏” 标记，代表对应的磁盘块已经被修改但未写入磁盘</p>
+<p>BY2SECT 单个磁盘扇区的大小（字节数），磁盘必须以扇区为单位读取</p>
+<p>SECT2BLK 一个磁盘块内的扇区数目</p>
+<p>DISKMAP 文件系统作为用户进程，其虚存空间的一部分与磁盘空间一一映射，该宏定义了映射的开始位置</p>
+<p>DISKMAX 该宏定义了映射的总大小（即最大地址位置在 DISKMAP + DISKMAX）</p>
+<h4 id="userincludefsh"><a class="markdownIt-Anchor" href="#userincludefsh"></a> user/include/fs.h</h4>
+<p>BY2BLK 单个磁盘块的大小（字节数），磁盘的文件管理以块为单位</p>
+<p>BIT2BLK 单个磁盘块的大小（位数，比特数）</p>
+<p>MAXNAMELEN 文件名的最长大小（char数）</p>
+<p>MAXPATHLEN 路径名的最长大小（char数）</p>
+<p>NDIRECT 文件直接指针数量</p>
+<p>NINDIRECT 文件间接指针数量，由于 MOS 的简化保存法，实际为文件直接和间接指针总和，也即文件对应的最大块数</p>
+<p>MAXFILESIZE 文件的最大大小，由 NINDIRECT * BY2BLK 算出</p>
+<p>BY2FILE 文件控制块的大小（字节数）</p>
+<h3 id="thinking-55"><a class="markdownIt-Anchor" href="#thinking-55"></a> Thinking 5.5</h3>
+<p>会共享。文件描述符本质上是内存中的变量，在fork后会复制同样的内容给父子进程，因此文件描述符是相同的。既然是相同的，对应的定位指针也会是同一个定位指针，因此父子进程会共享文件描述符和定位指针。</p>
+<h3 id="thinking-56"><a class="markdownIt-Anchor" href="#thinking-56"></a> Thinking 5.6</h3>
+<h4 id="struct-fd"><a class="markdownIt-Anchor" href="#struct-fd"></a> struct Fd</h4>
+<p>为文件描述符结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>u_int fd_dev_id 外设 id</li>
+<li>u_int fd_offset 读写的当前偏移量</li>
+<li>u_int fd_omode 文件打开方式，如只读</li>
+</ul>
+<h4 id="struct-filefd"><a class="markdownIt-Anchor" href="#struct-filefd"></a> struct Filefd</h4>
+<p>为记录文件详细信息的结构体，为单纯内存数据，其中：</p>
+<ul>
+<li>struct Fd f_fd 对应的文件描述符</li>
+<li>u_int f_fileid 文件的 id</li>
+<li>struct File f_file 对应的文件系统控制块</li>
+</ul>
+<h3 id="struct-file"><a class="markdownIt-Anchor" href="#struct-file"></a> struct File</h3>
+<p>为描述具体文件的结构体，对应磁盘上的物理实体，其中：</p>
+<ul>
+<li>char f_name[MAXNAMELEN] 文件名</li>
+<li>uint32_t f_size 文件大小，单位字节</li>
+<li>uint32_t f_type 文件类型，文件或目录</li>
+<li>uint32_t f_direct[NDIRECT] 文件直接对应的十个文件块指针</li>
+<li>uint32_t f_inidirect 文件间接对应的文件块指针所在的块</li>
+<li>struct File *f_dir 父目录</li>
+<li>char f_pad[略] 为了使 File 结构体恰好占用一定大小的 padding 部分</li>
+</ul>
+<h3 id="thinking-57"><a class="markdownIt-Anchor" href="#thinking-57"></a> Thinking 5.7</h3>
+<p>分为两种，同步消息和返回消息。</p>
+<p>同步消息以实心三角黑箭头+黑实线表示，消息的发送者会在消息发送后暂停活动，直到收到消息接受者的回应消息，才会继续运作。实现方式为先调用 ipc_send 发送消息后，再调用 ipc_recv 接收返回消息，接收到后才会继续运行。</p>
+<p>返回消息以开三角箭头+黑虚线表示，代表消息的发送者只管发送，发送后继续进行自己的相关活动，不等待消息接收者的回应，常用于对同步消息的回应。实现方式为直接调用 ipc_send 发送消息即可。</p>
+<h2 id="难点分析"><a class="markdownIt-Anchor" href="#难点分析"></a> 难点分析</h2>
+<h3 id="外设相关-syscall"><a class="markdownIt-Anchor" href="#外设相关-syscall"></a> 外设相关 syscall</h3>
+<p>主要是 Exercise 5.1～5.2 的部分，本身逻辑不难，按要求完成即可，难点在于判断允许访问的地址范围时需要仔细书写，尤其是不止要检测 pa 的范围，同样也要检测 pa+len 的范围。</p>
+<h3 id="ide"><a class="markdownIt-Anchor" href="#ide"></a> ide</h3>
+<p>按照汇编代码类似的逻辑进行物理地址的书写即可，需要注意不能搞错 read 和 write。</p>
+<h3 id="create_file"><a class="markdownIt-Anchor" href="#create_file"></a> create_file</h3>
+<p>需要仔细阅读 struct File 的定义，理解这里的关系。</p>
+<h3 id="fsc"><a class="markdownIt-Anchor" href="#fsc"></a> fs.c</h3>
+<p>明确文件目录的结构关系以及内存使用即可。</p>
+<h3 id="open-函数"><a class="markdownIt-Anchor" href="#open-函数"></a> open 函数</h3>
+<p>按照要求调用对应的函数即可。</p>
+<h3 id="read-函数"><a class="markdownIt-Anchor" href="#read-函数"></a> read 函数</h3>
+<p>参考 write 即可。</p>
+<h2 id="实验体会"><a class="markdownIt-Anchor" href="#实验体会"></a> 实验体会</h2>
+<p>lab5 的实验并不是很难，但是需要对文件系统的一些思考和理解，虽然代码部分不难，但是具体到理解整个运作其实还是有一定难度的，需要仔细理解认知。</p>
+]]></content>
+      <categories>
+        <category>OS</category>
+      </categories>
+      <tags>
+        <tag>OS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>OS Lab6</title>
     <url>/2023/07/05/OS-Lab6/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
@@ -595,6 +776,37 @@
       </tags>
   </entry>
   <entry>
+    <title>PMP Essay Note</title>
+    <url>/2023/07/05/PMP-Essay-Note/</url>
+    <content><![CDATA[<p>本文提出了一种通过学习局部动作先验（PMP）的方法来为配备手部的角色生成与复杂的环境交互的动画。核心创新点在于两个，一个是提出在强化学习任务中通过将身体划分为不同的部位来分别训练风格分类器，实现整体动作的泛用性增加，能在更少的训练数据中得到更泛化的结果；一个是提出对一些重要部位（如手部）可以预先进行交互训练，为交互提供内容。</p>
+<h3 id="过往工作amp"><a class="markdownIt-Anchor" href="#过往工作amp"></a> 过往工作：AMP</h3>
+<p>AMP是通过强化学习训练完成动作生成的方法。其强化学习对应的奖励函数包括两个部分，其一是任务奖励，作为完成给定任务的奖励，其二是风格奖励，用于限制生成动作的风格符合训练数据（通过训练一个判别器D判断是否是符合原数据集的动作来决定给予多少奖励）。这样的生成受限于数据，无法实现生成比较自然的而超出数据之外的运动，又因为现实中的不同动作数量众多，很难通过数据去全部覆盖，因此难以解决。</p>
+<h3 id="pmp"><a class="markdownIt-Anchor" href="#pmp"></a> PMP</h3>
+<p>PMP通过将现有的动作捕捉数据，对于每个部位先进行训练，获取相关部位的先验知识后，使其在训练阶段探索和动态选择最适合情景的整体动作，或组合不同部位的动作。</p>
+<p>具体的想法是将整个身体划分为k个不同的部分，对每个部分分别应用类似AMP的判别器训练，使得每个部分分别贴近训练数据。最后整体的强化学习风格奖励被设置为每个部位的风格奖励的乘积。</p>
+<h3 id="交互gym"><a class="markdownIt-Anchor" href="#交互gym"></a> 交互Gym</h3>
+<p>针对手部的灵活动作，本文首先设计了一个交互Gym用于预训练手部的动作，以使手部能获得先验。该环境中，每次设置一个手部模型和一个代表性的目标物体，如长圆柱体，强制手部通过均匀接触来抓握，并应用了一个带有手动设计奖励的强化学习算法来训练自然且物理稳定的抓握。在训练过程中，物体被施加以任意力或扭矩来促进训练稳定的抓握。</p>
+<h3 id="手部交互状态表示"><a class="markdownIt-Anchor" href="#手部交互状态表示"></a> 手部交互状态表示</h3>
+<p>上述手部交互中，一个状态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>s</mi><mi>i</mi></msup></mrow><annotation encoding="application/x-tex">s^i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.824664em;vertical-align:0em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.824664em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span></span></span></span></span></span></span></span> 被定义如下：</p>
+<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>s</mi><mi>i</mi></msup><mo>=</mo><mrow><mo fence="true">{</mo><msub><mi>q</mi><mi>h</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>q</mi><mo>˙</mo></mover><mi>h</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>p</mi><mo stretchy="true">‾</mo></mover><mi>e</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>p</mi><mo stretchy="true">‾</mo></mover><mi>r</mi></msub><mo separator="true">,</mo><msub><mi>c</mi><mi>e</mi></msub><mo separator="true">,</mo><mo>&lt;</mo><msub><mi>d</mi><mi>h</mi></msub><mo>⋅</mo><msub><mi>d</mi><mi>c</mi></msub><mo>&gt;</mo><mo fence="true">}</mo></mrow></mrow><annotation encoding="application/x-tex">s^i=\left\{q_h,\dot q_h, \overline p_e, \overline p_r, c_e, &lt;d_h\cdot d_c&gt;\right\} 
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8746639999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8746639999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.66786em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">q</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.055550000000000016em;"><span class="mord">˙</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord overline"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.63056em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">p</span></span><span style="top:-3.55056em;"><span class="pstrut" style="height:3em;"></span><span class="overline-line" style="border-bottom-width:0.04em;"></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.057252em;"><span style="top:-2.4558600000000004em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.24414em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord overline"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.63056em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">p</span></span><span style="top:-3.55056em;"><span class="pstrut" style="height:3em;"></span><span class="overline-line" style="border-bottom-width:0.04em;"></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.057252em;"><span style="top:-2.4558600000000004em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.02778em;">r</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.24414em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mclose delimcenter" style="top:0em;">}</span></span></span></span></span></span></p>
+<p>前三个代表手的状态，分别代表手部关节的位置、速度和在手腕局部坐标系中指向四指末端的坐标。目标杆子被表示第四个值，为其两端的坐标总计六个维度，最后两项感知交互状态，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>c</mi><mi>e</mi></msub></mrow><annotation encoding="application/x-tex">c_e</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 代表各个指尖的0/1接触标记，最后一个值代表每个构成手部的刚体之间，从手指指向手掌内部的向量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>h</mi></msub></mrow><annotation encoding="application/x-tex">d_h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与生成的接触力方向 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">d_c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 之间的余弦相似度。</p>
+<h3 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h3>
+<p>最终，上述的手部动作得到单独预训练的分类器和其他部位的风格分类器一同进行计算，再将交互奖励嵌入奖励函数，使得尽量贴近交互目标成为一个训练目的。</p>
+<h3 id="混合技术"><a class="markdownIt-Anchor" href="#混合技术"></a> 混合技术</h3>
+<p>当上述分割较多时，由于最后得到奖励函数是所有量之间的乘积形式，如果其中某一个不能模仿对应风格（使得其部分的奖励函数=0），会使得整体奖励为0，拖慢训练。因此本文选择通过每个部位都各自独立地有0.1的概率不参与乘积的方式进行混合（会在分割数大于2时使用），以此保证了训练的有效。</p>
+<h3 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h3>
+<p>局限性。当运动捕捉数据有限或需要特定部分的交互先验时，PMP提供了一个很好的选择。此外，提出的交互先验减少了在多个下游任务中针对抓握相关奖励项进行重复策略优化的工作量。然而，提出的方法仍然没有完全减轻发明一种有效的任务奖励函数来引导代理程序在具有挑战性的场景中正确行为的所有努力。作为未来的工作，PMP可以包括其他演示特征，例如交互场景的视觉输入，从而使代理程序能够自动探索将局部技能与相对简单的任务奖励项相结合的最佳组合。此外，可以在后续的工作中解决自动探索最佳部分分段组合的问题。</p>
+]]></content>
+      <categories>
+        <category>VR</category>
+      </categories>
+      <tags>
+        <tag>VR</tag>
+        <tag>ML</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Test</title>
     <url>/2023/07/05/Test/</url>
     <content><![CDATA[<p>This is a <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>e</mi><mi>s</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">test</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord mathnormal">s</span><span class="mord mathnormal">t</span></span></span></span>.<br />
@@ -634,218 +846,6 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       </categories>
       <tags>
         <tag>Test</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>COINS Essay Note</title>
-    <url>/2023/07/05/COINS-Essay-Note/</url>
-    <content><![CDATA[<p>Compositional Human-Scene Interaction Synthesis with Semantic Control</p>
-<p>实现了一种通过高级语义规范生成给定3D场景中的人物动作的方法，比如“坐在椅子上”等。支持人物与3D环境的自然交互，支持多种交互的组合，通过扩展PROX数据集对比现有方法实现了更好的效果。</p>
-<p>语义示例：躺在沙发上、坐在桌子上、摸椅子、躺在椅子上、坐在地板上、摸床、坐在柜子上且摸床、站在地板上且摸显示器、站在地板上且摸桌子等。（不需要额外训练就能支持多种要求的组合）</p>
-<p>关注重点：<strong>语义、交互、动作生成、动作组合</strong></p>
-<h2 id="计算预设"><a class="markdownIt-Anchor" href="#计算预设"></a> 计算预设</h2>
-<h3 id="人体表示"><a class="markdownIt-Anchor" href="#人体表示"></a> 人体表示</h3>
-<p>使用SMPL-X模型表示，一个人被表示为顶点、面片和接触信息的集合。具体来说，存储了655个顶点的坐标、1296个面片的对应三顶点的编号、655个0/1接触特征，用于表述顶点是否和场景有接触。（简化了SMPL-X模型的顶点/面片数量，以方便计算）接触信息的计算方法为：如果某个顶点距离场景物体过近（低于某个值）则为1，即接触，否则为0，即未接触。</p>
-<h3 id="场景表示"><a class="markdownIt-Anchor" href="#场景表示"></a> 场景表示</h3>
-<p>场景被表示为物品实体的集合。每个物品被表示为8192个点的点云集合，每个点包括9维信息：位置、颜色和法线方向。如此表示是为了通用性，与以往方法将场景物体分类表示为独热码区分开来。</p>
-<h3 id="交互表示"><a class="markdownIt-Anchor" href="#交互表示"></a> 交互表示</h3>
-<p>一个交互包括一个人体信息与一个包含了多个原子交互的集合，因为一种交互动作可能包括了不同部位和不同场景位置的接触。每个原子交互包括一对独热码，分别对应动作和物体，如“坐、椅子”，“触摸、桌子”等等。</p>
-<p>注：这里的“桌子”和“椅子”不是泛指所有，而是作者直接在场景中为每个物体定义了一个独热码，在这种交互信息输入中直接指定，要和哪一个物体进行交互。因此后文中网络结构里可以直接将动作独热码和对应的物体进行对应。</p>
-<h2 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h2>
-<h3 id="总览"><a class="markdownIt-Anchor" href="#总览"></a> 总览</h3>
-<p>生成的输入是若干个如上文一样动作和物体对，如“坐、椅子”+“触摸、桌子”等。生成的输出是人体的骨骼动作。</p>
-<p>生成被分为两个部分，首先根据场景信息和交互信息，在场景中生成一个合适的骨盆位置和朝向，这是第一次生成。其次再将场景信息转换为骨盆的局部坐标系信息后，进行第二次生成，生成人体的具体动作信息。两次生成都是由一种基于transformer的cVAE网络完成，分别叫PelvisVAE和BodyVAE。</p>
-<h3 id="网络细节"><a class="markdownIt-Anchor" href="#网络细节"></a> 网络细节</h3>
-<p>首先来看网络的场景信息输入。场景中的每个物体被表示为前文所述8192个点的点云后，输入一个PointNet++（一个将大量点的信息进行编码抽象，取出其中重要信息的网络，可学习）后得到256个点组成的点云。之后，将和物体相关的动作作为（可学习的）embedding嵌入到这256个点的信息中。</p>
-<p>PointNet++抽象过程：8192*(3+6) -&gt; 1024*(3+96) -&gt; 256*(3+256) -&gt; 256*D，前两个是经过集合抽象层，第三个则是一个线性层，将抽象出来的信息编码为transformer需要的D维输入向量。</p>
-<p>而人体信息输入则就是简单的将前述由三种信息组成的人体表示加上由顶点索引决定的positional embedding后，通过一个线性层映射到指定的输入维度，和上述场景信息一同输入到Encoder中。</p>
-<p>上述信息会被输入到一个四层的transformer-encoder中，得到输入交互预测出的隐空间，将隐空间信息和与人体信息相关的模板信息（加上positional embedding）一同输入到transformer-decoder当中，得到所预测的身体表示。其中BodyVAE最后输出的结果会经过一个包含六个线性层+残差链接的MLP得到最终输出的SMPL-X身体表示。</p>
-<h3 id="loss"><a class="markdownIt-Anchor" href="#loss"></a> Loss</h3>
-<p>PelvisVAE的Loss包括位置和朝向和Loss加上KL Loss（见后）。</p>
-<p>BodyVAE的Loss由以下这些部分组成：</p>
-<h4 id="交互loss"><a class="markdownIt-Anchor" href="#交互loss"></a> 交互Loss</h4>
-<p>交互Loss包括对身体655个顶点每个点的如下计算的求和：</p>
-<p>对于每一个点，计算该点和交互对应的物体的所有点的最小距离。</p>
-<p>即，该Loss鼓励身体每一个顶点都与交互对应物体（的任意位置）有零距离接触。</p>
-<h4 id="mesh重建loss"><a class="markdownIt-Anchor" href="#mesh重建loss"></a> mesh重建Loss</h4>
-<p>mesh重建Loss用于使重建所得的人体更加真实，由以下几个项组成：顶点坐标Loss判断顶点坐标变化、法线Loss判断法线角度变化、边长Loss判断每个面片的各边长度变化、正常一致性Loss用于使相邻面的法线变化更加平滑。</p>
-<h4 id="接触特征重建loss"><a class="markdownIt-Anchor" href="#接触特征重建loss"></a> 接触特征重建Loss</h4>
-<p>用于表达接触特征是否有被正常重建，通过计算生成所得人体各个顶点的0/1接触特征和应有的0/1接触特征这两个向量之间的BCE值得到。</p>
-<h4 id="kl-loss"><a class="markdownIt-Anchor" href="#kl-loss"></a> KL Loss</h4>
-<p>通过将Loss中加入 <a href="https://blog.csdn.net/wr1997/article/details/115255712">KL散度</a> 来避免后验失效问题。该KL散度经过一个Charbonnier函数。</p>
-<h4 id="smpl-x回归loss"><a class="markdownIt-Anchor" href="#smpl-x回归loss"></a> SMPL-X回归Loss</h4>
-<p>包括了SMPL-X身体参数对应预测值和真实值相减的L2范数，加上映射为网格顶点的SMPL-X模型对应预测值和真实值的差值的模长。</p>
-<h3 id="组合式骨盆生成"><a class="markdownIt-Anchor" href="#组合式骨盆生成"></a> 组合式骨盆生成</h3>
-<p>这里通过一些计算和训练方式实现了不需要组合式交互数据训练的组合式动作生成。首先是骨盆生成。前述的网络能够对每对交互任务中最后的骨盆生成任务输出一个骨盆位置的概率分布，而对组合式生成任务，本文通过实现如下的一个优化过程实现对多个交互任务的骨盆位置生成：对每个交互任务，保证其得到的生成结果概率尽量大的同时，使得多个生成结果的骨盆位置尽可能接近。再将如此得到的每个交互生成的骨盆位置取均值，即为最终的组合式骨盆生成位置。</p>
-<h3 id="组合式身体生成"><a class="markdownIt-Anchor" href="#组合式身体生成"></a> 组合式身体生成</h3>
-<p>一个交互动作往往不需要用到全身所有位置与目标物体的接触。因此本文将全身分为上肢、下肢和躯干三个部分，同时对于每个动作，计算这个动作对于每个身体部分的发生接触的概率，概率被表示为该动作对应所有接触的顶点数量中位于某个部位的顶点数量占比。如果某个动作在某个部位的接触概率显著大于其他动作，则将其他动作在该部位的注意力设置为0。</p>
-]]></content>
-      <categories>
-        <category>VR</category>
-      </categories>
-      <tags>
-        <tag>VR</tag>
-        <tag>ML</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PMP Essay Note</title>
-    <url>/2023/07/05/PMP-Essay-Note/</url>
-    <content><![CDATA[<p>本文提出了一种通过学习局部动作先验（PMP）的方法来为配备手部的角色生成与复杂的环境交互的动画。核心创新点在于两个，一个是提出在强化学习任务中通过将身体划分为不同的部位来分别训练风格分类器，实现整体动作的泛用性增加，能在更少的训练数据中得到更泛化的结果；一个是提出对一些重要部位（如手部）可以预先进行交互训练，为交互提供内容。</p>
-<h3 id="过往工作amp"><a class="markdownIt-Anchor" href="#过往工作amp"></a> 过往工作：AMP</h3>
-<p>AMP是通过强化学习训练完成动作生成的方法。其强化学习对应的奖励函数包括两个部分，其一是任务奖励，作为完成给定任务的奖励，其二是风格奖励，用于限制生成动作的风格符合训练数据（通过训练一个判别器D判断是否是符合原数据集的动作来决定给予多少奖励）。这样的生成受限于数据，无法实现生成比较自然的而超出数据之外的运动，又因为现实中的不同动作数量众多，很难通过数据去全部覆盖，因此难以解决。</p>
-<h3 id="pmp"><a class="markdownIt-Anchor" href="#pmp"></a> PMP</h3>
-<p>PMP通过将现有的动作捕捉数据，对于每个部位先进行训练，获取相关部位的先验知识后，使其在训练阶段探索和动态选择最适合情景的整体动作，或组合不同部位的动作。</p>
-<p>具体的想法是将整个身体划分为k个不同的部分，对每个部分分别应用类似AMP的判别器训练，使得每个部分分别贴近训练数据。最后整体的强化学习风格奖励被设置为每个部位的风格奖励的乘积。</p>
-<h3 id="交互gym"><a class="markdownIt-Anchor" href="#交互gym"></a> 交互Gym</h3>
-<p>针对手部的灵活动作，本文首先设计了一个交互Gym用于预训练手部的动作，以使手部能获得先验。该环境中，每次设置一个手部模型和一个代表性的目标物体，如长圆柱体，强制手部通过均匀接触来抓握，并应用了一个带有手动设计奖励的强化学习算法来训练自然且物理稳定的抓握。在训练过程中，物体被施加以任意力或扭矩来促进训练稳定的抓握。</p>
-<h3 id="手部交互状态表示"><a class="markdownIt-Anchor" href="#手部交互状态表示"></a> 手部交互状态表示</h3>
-<p>上述手部交互中，一个状态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>s</mi><mi>i</mi></msup></mrow><annotation encoding="application/x-tex">s^i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.824664em;vertical-align:0em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.824664em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span></span></span></span></span></span></span></span> 被定义如下：</p>
-<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>s</mi><mi>i</mi></msup><mo>=</mo><mrow><mo fence="true">{</mo><msub><mi>q</mi><mi>h</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>q</mi><mo>˙</mo></mover><mi>h</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>p</mi><mo stretchy="true">‾</mo></mover><mi>e</mi></msub><mo separator="true">,</mo><msub><mover accent="true"><mi>p</mi><mo stretchy="true">‾</mo></mover><mi>r</mi></msub><mo separator="true">,</mo><msub><mi>c</mi><mi>e</mi></msub><mo separator="true">,</mo><mo>&lt;</mo><msub><mi>d</mi><mi>h</mi></msub><mo>⋅</mo><msub><mi>d</mi><mi>c</mi></msub><mo>&gt;</mo><mo fence="true">}</mo></mrow></mrow><annotation encoding="application/x-tex">s^i=\left\{q_h,\dot q_h, \overline p_e, \overline p_r, c_e, &lt;d_h\cdot d_c&gt;\right\} 
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8746639999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8746639999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.66786em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">q</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.055550000000000016em;"><span class="mord">˙</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord overline"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.63056em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">p</span></span><span style="top:-3.55056em;"><span class="pstrut" style="height:3em;"></span><span class="overline-line" style="border-bottom-width:0.04em;"></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.057252em;"><span style="top:-2.4558600000000004em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.24414em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord overline"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.63056em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">p</span></span><span style="top:-3.55056em;"><span class="pstrut" style="height:3em;"></span><span class="overline-line" style="border-bottom-width:0.04em;"></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.19444em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.057252em;"><span style="top:-2.4558600000000004em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.02778em;">r</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.24414em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mclose delimcenter" style="top:0em;">}</span></span></span></span></span></span></p>
-<p>前三个代表手的状态，分别代表手部关节的位置、速度和在手腕局部坐标系中指向四指末端的坐标。目标杆子被表示第四个值，为其两端的坐标总计六个维度，最后两项感知交互状态，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>c</mi><mi>e</mi></msub></mrow><annotation encoding="application/x-tex">c_e</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">e</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 代表各个指尖的0/1接触标记，最后一个值代表每个构成手部的刚体之间，从手指指向手掌内部的向量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>h</mi></msub></mrow><annotation encoding="application/x-tex">d_h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">h</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与生成的接触力方向 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">d_c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 之间的余弦相似度。</p>
-<h3 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h3>
-<p>最终，上述的手部动作得到单独预训练的分类器和其他部位的风格分类器一同进行计算，再将交互奖励嵌入奖励函数，使得尽量贴近交互目标成为一个训练目的。</p>
-<h3 id="混合技术"><a class="markdownIt-Anchor" href="#混合技术"></a> 混合技术</h3>
-<p>当上述分割较多时，由于最后得到奖励函数是所有量之间的乘积形式，如果其中某一个不能模仿对应风格（使得其部分的奖励函数=0），会使得整体奖励为0，拖慢训练。因此本文选择通过每个部位都各自独立地有0.1的概率不参与乘积的方式进行混合（会在分割数大于2时使用），以此保证了训练的有效。</p>
-<h3 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h3>
-<p>局限性。当运动捕捉数据有限或需要特定部分的交互先验时，PMP提供了一个很好的选择。此外，提出的交互先验减少了在多个下游任务中针对抓握相关奖励项进行重复策略优化的工作量。然而，提出的方法仍然没有完全减轻发明一种有效的任务奖励函数来引导代理程序在具有挑战性的场景中正确行为的所有努力。作为未来的工作，PMP可以包括其他演示特征，例如交互场景的视觉输入，从而使代理程序能够自动探索将局部技能与相对简单的任务奖励项相结合的最佳组合。此外，可以在后续的工作中解决自动探索最佳部分分段组合的问题。</p>
-]]></content>
-      <categories>
-        <category>VR</category>
-      </categories>
-      <tags>
-        <tag>VR</tag>
-        <tag>ML</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GAParts Essay Note</title>
-    <url>/2023/07/05/GAParts-Essay-Note/</url>
-    <content><![CDATA[<h2 id="pointgroup"><a class="markdownIt-Anchor" href="#pointgroup"></a> PointGroup</h2>
-<p><img src="https://file.notion.so/f/s/137612d2-0f12-409f-9aed-41f834dba168/Untitled.png?id=16fc1a99-6642-4096-9202-6f9950433f8f&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=1hHO-l7iJqN4ITLhp7jzp2elJDPKRqy16dNtt1U5S5c&amp;downloadName=Untitled.png" alt="Untitled" /></p>
-<h3 id="backbone-network"><a class="markdownIt-Anchor" href="#backbone-network"></a> Backbone Network</h3>
-<p>场景以点云的形式输入进网络，每个点包括三维坐标和三维颜色信息。</p>
-<p>网络形式是一个U-Net（先对点体素化后，使用稀疏卷积SC和submanifold稀疏卷积SSC进行，得到的结果再从体素化生成回点值形式（Submanifold sparse convolutional networks, 2019）），通过网络后，每个点被提取出K维特征。</p>
-<h3 id="clustering"><a class="markdownIt-Anchor" href="#clustering"></a> Clustering</h3>
-<p>然后再从这K维特征中得到两样东西，（通过一个MLP得到）用于语义分割的一维标签S（同一类的标签值相同）和（通过同类点求位置的均值得到）用于预测目标中心位置的三维向量o（offset），指示对于该点，其所属的分割类的中心的方向。</p>
-<p>由于这种分类让每个点按类聚在一起，就可以根据点聚类之间的空位距离对点进行聚类。</p>
-<p>由于这种offset不总准确，论文将原位置p采得一个聚类结果，再由加上offset的新位置q采得一个聚类结果，将两个结果取并集，输入到ScoreNet中</p>
-<h3 id="score-net"><a class="markdownIt-Anchor" href="#score-net"></a> Score Net</h3>
-<p><img src="https://file.notion.so/f/s/16d54e66-b9dd-4151-8d98-911b5f7cde28/Untitled.png?id=abf52d35-dd50-4038-a2cf-9ecf64c09f2e&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=2Z-VtfRYILtiwq7K4ISo8q4OPvJwrxFGO5pOiXUv13k&amp;downloadName=Untitled.png" alt="Untitled" /></p>
-<p>对于每个聚类，该聚类i的Ni个点先前提取的K维特征信息构成Ni<em>K维聚类特征，位置构成Ni</em>3维位置特征，和之前类似的方法体素化（每个体素特征求平均）后输入SC和SSC的较小U-Net进一步提取特征后经过max-pooling得到一个聚类特征，进而输入MLP后经过Sigmoid函数得到最终分数Si</p>
-<p>最后用先前的聚类信息和得到的分数信息输入NMS输出最终聚类信息。</p>
-<h2 id="grl-gradient-reversal-layer"><a class="markdownIt-Anchor" href="#grl-gradient-reversal-layer"></a> GRL (<em><strong>*Gradient Reversal Layer)*</strong></em></h2>
-<p><img src="https://file.notion.so/f/s/9574a97d-7b95-4aa2-86eb-7811b3f951d9/v2-ebe7d65b70355baed5ca478173fe0695_r.jpg?id=4d40546b-f3ac-47d2-a43e-37c819d75624&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=SHmsYNLKJeJMveQWwixUuNvUyxOEeonKI1qITfD9X3w&amp;downloadName=v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" alt="v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" /></p>
-<h3 id="grl层"><a class="markdownIt-Anchor" href="#grl层"></a> GRL层</h3>
-<p>梯度下降是最小化目标函数，而GRL这一层的目的是“向负方向梯度上升”，其实就是最大化目标函数。</p>
-<h3 id="模型说明"><a class="markdownIt-Anchor" href="#模型说明"></a> 模型说明</h3>
-<p>上图绿色部分是特征提取，对应GAParts就是那个Sparse U-Net，提取特征F用的</p>
-<p>蓝色部分是处理分类任务用的，对应GAParts就是后续的聚类和score模块等</p>
-<p>粉色部分就是重点的domain classifier，是一个域分类器，本质上是一个判别器。</p>
-<h3 id="grl和domain-classifier的意义"><a class="markdownIt-Anchor" href="#grl和domain-classifier的意义"></a> GRL和domain classifier的意义</h3>
-<p>在训练中，绿色部分和粉色部分构成了一种类似GAN的结构，绿色部分作为生成器，粉色部分作为判别器，目标是让生成出来的feature趋于域自适应（域分类器尝试将feature进行分类，如果这种分类越来越难以进行，说明提取出来的feature就是共通的feature，也就趋向于域自适应了）</p>
-<h2 id="gaparts中的domain-invariant-feature-learning"><a class="markdownIt-Anchor" href="#gaparts中的domain-invariant-feature-learning"></a> GAParts中的Domain-invariant Feature Learning</h2>
-<p>总共提出了三种方法，均是对于domain-classifier的改进，用于使模型更加适应不同类型，能准确提取不同物体的特征。</p>
-<h3 id="part-oriented-feature-query"><a class="markdownIt-Anchor" href="#part-oriented-feature-query"></a> Part-oriented Feature Query</h3>
-<p>由于GAParts是对Parts的分类，因此实际上做分类器是对点向不同的结果label（即parts/clusters的编号i）分类。因此采用对于分数大于某阈值s的所有parts，计算分类器对其的loss再求均值的方法</p>
-<h3 id="multi-resolution"><a class="markdownIt-Anchor" href="#multi-resolution"></a> Multi-Resolution</h3>
-<p>由于部件大小不一，为了能适应多种大小，向Domain Classifier输入的feature来自三个不同大小的U-Net层，最后loss取加权总和。这样能让网络适应不同大小的部件。</p>
-<h3 id="distribution-balancing"><a class="markdownIt-Anchor" href="#distribution-balancing"></a> Distribution-Balancing</h3>
-<p>为了能使训练中对于不同类型不同种类的Parts训练成果比较均匀，采用了一种均匀分布的方法，具体来说是对前述Part-oriented Feature Query在求均值前加了一个权重，对于准确率更高的部分，los计算的就更小一些，同时对于域分布量更大的计算的更小一些。</p>
-]]></content>
-      <categories>
-        <category>VR</category>
-      </categories>
-      <tags>
-        <tag>VR</tag>
-        <tag>ML</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>寄存器分配笔记1</title>
-    <url>/2023/07/09/LLVM-Reg-Alloc-1/</url>
-    <content><![CDATA[<p>有无限多个虚拟寄存器——对应实际CPU中有有限个寄存器。</p>
-<p>寄存器分配前后分别会有两次指令调度</p>
-<p>常见的寄存器分配算法：</p>
-<ul>
-<li>PBQ</li>
-<li>Greedy 运行时间短</li>
-<li>Basic 编译快</li>
-<li>Fast 编译快</li>
-</ul>
-<p>整体流程：</p>
-<p>生命周期分析——权重计算——构造优先队列——分配寄存器——弹出无法分配的寄存器</p>
-<h2 id="生命周期分析"><a class="markdownIt-Anchor" href="#生命周期分析"></a> 生命周期分析</h2>
-<p>可以写成单独的 Pass，是计算每个寄存器的使用生命周期。</p>
-<p>所谓生命周期就是一个寄存器从一次定义到下一次定义前的最后一次使用的周期，如下示例：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">BB1:</span><br><span class="line">%<span class="number">1</span> = <span class="number">23</span>; <span class="comment">// 01</span></span><br><span class="line">%<span class="number">2</span> = %<span class="number">1</span> + <span class="number">2</span>; <span class="comment">// 02</span></span><br><span class="line"><span class="keyword">goto</span> BB2; <span class="comment">// 03</span></span><br><span class="line"></span><br><span class="line">BB2:</span><br><span class="line">... <span class="comment">// 04 - 12</span></span><br><span class="line">%<span class="number">3</span> = %<span class="number">1</span> + <span class="number">1</span>; <span class="comment">// 12</span></span><br><span class="line"><span class="keyword">goto</span> BB3; <span class="comment">// 13</span></span><br><span class="line"></span><br><span class="line">BB3:</span><br><span class="line"><span class="comment">// 14 - 21</span></span><br><span class="line">%<span class="number">4</span> = %<span class="number">3</span> + %<span class="number">2</span>; <span class="comment">// 22</span></span><br><span class="line"><span class="keyword">return</span>; <span class="comment">// 23</span></span><br></pre></td></tr></table></figure>
-<p>每条语句之后的注释标注了其对应的语句编号，则各个变量生命周期如下：</p>
-<p>%1 生命周期从 01 开始，在 BB1 中到 02 结束，在 BB2 中到 12 结束。</p>
-<p>%2 生命周期从 02 开始，在 BB1 中到 02 结束，在 BB3 中到 22 结束。</p>
-<p>%3 生命周期从 12 开始，在 BB2 中到 12 结束，在 BB3 中到 22 结束。</p>
-<p>（生命周期包括：如果单基本块则从定义到最后一次使用，如果跨基本块则在定义基本块中从定义到基本块结束，在其他使用基本块中从开头到最后一次使用）</p>
-<h2 id="权重计算"><a class="markdownIt-Anchor" href="#权重计算"></a> 权重计算</h2>
-<p>计算一个寄存器的<strong>重要程度</strong>，代表它获得寄存器分配的重要权重高低。</p>
-<p>简单的方法包括：如果在一个常用循环中使用则权重高，如果寄存器相关访问少或简单则权重低。生命周期越长，权重越低。</p>
-<p>分配权重：</p>
-<p>如果只在一个基本块使用，权重低。</p>
-<p>在多个基本块都要使用，权重高。</p>
-<p>以<strong>分配权重</strong>大小设优先队列，将各个寄存器入队。</p>
-<h2 id="寄存器分配"><a class="markdownIt-Anchor" href="#寄存器分配"></a> 寄存器分配</h2>
-<p>从优先队列依次取寄存器，分配到物理寄存器。</p>
-<p>分配时参考生命周期冲突，如果没有生命周期冲突则可以共用寄存器。</p>
-<p>每次取寄存器后，如果和当前所有物理寄存器分配的寄存器生命周期都有冲突，则比较前述重要权重（不是分配权重），如果更高则替换掉现有分配的寄存器。</p>
-<p>如果更低，则考虑能否进行拆分，即将生命周期拆分到多个不同的寄存器上，如第一段时4号寄存器空闲，第二段时5号寄存器空闲，则通过第一段分给4号，第二段分给5号，第二段开头插入一个move指令将4号的值复制给5号实现。如果这种拆分有益于速度，则执行拆分。</p>
-<p>实际LLVM操作中不会拆分后直接插入，而是先计算合适的拆分位置，然后进行拆分，拆分后将原有的寄存器拆分为两个不同的寄存器重新放入优先队列，再按前述规则进行出队和插入等操作。</p>
-<h2 id="spill-通过内存周转"><a class="markdownIt-Anchor" href="#spill-通过内存周转"></a> Spill （通过内存周转）</h2>
-<p>将不参与计算时的指令部分加入load/store指令，从而拆分成两个生命周期更短的寄存器，再尝试进行插入。</p>
-<h2 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h2>
-<p>上述LLVM的Greedy分配方法主要关注点在于用最少的物理寄存器来进行分配，这样可以尽可能减少寄存器溢出，但是会有局限性——如果在寄存器足够的情况下，用极可能多的寄存器能够提升并行度，从而提高速度（e.g. 流水线中如果有寄存器依赖可能会降低速度）</p>
-<p>Register Allocatiion for Compressed ISAs in LLVM</p>
-]]></content>
-      <categories>
-        <category>PL</category>
-      </categories>
-      <tags>
-        <tag>PL</tag>
-        <tag>LLVM</tag>
-        <tag>编译</tag>
-        <tag>编译后端</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>编译后端笔记-图着色法-1</title>
-    <url>/2023/07/11/Compiler-Notes-1/</url>
-    <content><![CDATA[<h2 id="图着色法-细节"><a class="markdownIt-Anchor" href="#图着色法-细节"></a> 图着色法-细节</h2>
-<h3 id="函数活跃寄存器计算"><a class="markdownIt-Anchor" href="#函数活跃寄存器计算"></a> 函数活跃寄存器计算</h3>
-<p>这部分内容简单来说，就是对每个函数计算其各个基本块的活跃出入寄存器，也就是进入和离开基本块时，需要保持活跃（其值有意义/有用）的寄存器。</p>
-<p>首先，我们遍历每个基本块，先计算其内部的依赖关系。简便起见use，我们倒序遍历基本块内的指令，并维护两个集合：def 和 live_use，分别代表“该基本块中新定义了的寄存器”与“该基本块中未定义但使用了其值的寄存器”，注意这里定义实际上指的是重新赋值。然后，在遍历过程中，对每一条指令，如果该指令为寄存器赋值（即对于该指令的 dst 寄存器），则该寄存器在当前位置一定是新定义了的，一定不是未定义但使用的，就从 live_use 中移除，向 def 加入。类似的，如果该指令使用了某寄存器值（即对于该指令的 src 寄存器），则该寄存器在当前位置一定是未定义但被使用，一定不是新定义的，从 def 中移除，向 live_use 中加入。注意到有的指令可能有寄存器同时在 def 和 src 中，由于我们是倒序遍历，因此应该按上述叙述顺序判断并处理。</p>
-<p>这时，容易注意到所有的 live_use 都是满足我们对 live_in 要求的寄存器，因此赋值 live_in = live_use，但是这里的 live_in 还不全，需要后续处理。</p>
-<p>为了处理 live_out，即计算哪些基本块新定义的寄存器是后续需要被使用到的寄存器，我们定义一个队列，存储基本块到寄存器的使用关系，每个 std::pair 代表某个块新定义了某个寄存器。我们将所有当前基本块 live_use 的寄存器和该块一起推入队列。</p>
-<p>然后我们遍历队列，每次取队列头元素，获取当前块和当前块使用（但未定义）的某个寄存器，对于该块的所有前继基本块，如果前继的 live_out 中没有当前这个寄存器，则将其加入。这里需要判断一件事——有可能该寄存器也不是这个块定义的，如果不是，则需要将这个前继块和该寄存器再次推入队列，并为这个块的 live_in 记录下这个寄存器。</p>
-<h3 id="建图"><a class="markdownIt-Anchor" href="#建图"></a> 建图</h3>
-<p>在计算了各个基本块的出入活跃寄存器后，就可以开始建图了。我们使用邻接表存图，具体来说，使用如下的数据结构存储：</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">std::vector&lt;<span class="type">char</span>&gt; appeared;</span><br><span class="line">std::vector&lt;std::set&lt;<span class="type">int</span>&gt;&gt; edges;</span><br></pre></td></tr></table></figure>
-<p>两个动态数组的大小都是寄存器最大值。其中前者是一个记录某寄存器值是否出现在本函数中的布尔值数组，由于一些 C++ 特性，使用 char 类型。后者则是用于存边的，其内层是记录某寄存器和哪个寄存器有连边的集合，使用集合是为了保证不重复处理。</p>
-<p>建图过程中，由于前面我们已经计算了基本块之间的活跃关系，现在我们只需要遍历每一个基本块，处理块内的寄存器活跃关系并连边即可。</p>
-<p>在遍历每个基本块时，我们记录一个动态数组 live，存储“当前”的活跃寄存器，因为我们是对所有指令倒序遍历的，因此该数组的初始值为 live_out，即基本块结束时仍需要活跃的寄存器。</p>
-<p>首先，基本块结束时所有的需要活跃的寄存器一定是互斥的（互相冲突的，不能存储在相同寄存器中的，后同），因此首先需要对它们两两连边。因此我们设置一个空的动态数组 tmp，将所有的 live 中的寄存器推入。</p>
-<p>其次，我们需要将最后一条语句中的 dst 寄存器也推入 tmp 中，保证它和其他 live_out 的寄存器的互斥关系，原因后面解释。</p>
-<p>这时，tmp 中就存下了所有“在基本块结束时”互斥的寄存器，我们对其中的寄存器两两加边即可（注：图是无向图，所有的加边都是双向边）。</p>
-<p>然后就可以开始倒序遍历每条指令了。我们在遍历过程中不断维护 live 数组，具体来说，每当倒序遍历到一条新指令，这条指令如果对某寄存器进行了修改（即对于指令的 dst 寄存器来说），则该 dst 寄存器就不再 live，从 live 中移除。反之，如果使用了某寄存器的值（即对于指令的 src 寄存器来说），则此时（和从此时开始一直往前到该寄存器被定义，即被作为 dst）的这个 src 寄存器，就是活跃的，也就是说其值需要被保留，和其他所有的活跃寄存器互斥，将 src 和所有的 live 中寄存器连边，并将 src 推入 live 即可。</p>
-<p>这样一来，我们就处理好了所有的 src 寄存器之间的互斥关系，但是还需要处理 dst 和 src 之间的互斥关系。注意到：同语句的 src 和 dst 是不互斥的，因为比如 add s0, s0, s1 这种操作（即只要后续不再使用 src 的原值，则完全可以使用相同的 src 和 dst，在人工写汇编时也会常常这么做以实现 += 等效果）但是每一条语句的 dst 和这之后的所有 src （准确来说是所有活跃寄存器）是互斥的，这很容易理解，比如下列语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi %1, %2, 100 // 1</span><br><span class="line">mul %5, %3, %4 // 2</span><br><span class="line">mul %2, %1, %1 // 3</span><br></pre></td></tr></table></figure>
-<p>语句 2 中的 %5 和 %1 应当是互斥的，因为后面还需要用到 %1 的值，如果给 %1 和 %5 分配相同的寄存器，则后续语句 3 时使用 %1 时就得不到正确的值了，因为在语句 2 处被修改了。因此我们对上一句的 dst 寄存器和当前的所有 live 中的寄存器加边，保证其互斥。这里很容易发现，由于这样只能处理到第一条到倒数第二条语句的 dst，因为是对每条语句的“上一条”进行处理，因此最后一条语句的 dst 就没被处理，这也是前述处理最后一条语句 dst 的原因。</p>
-<p>最后，在每条指令开始遍历时新建一个空数组，将所有的当前的新活跃寄存器和上条语句的 dst 一同推入数组，并对数组中的元素两两建边即可。</p>
-]]></content>
-      <categories>
-        <category>PL</category>
-      </categories>
-      <tags>
-        <tag>PL</tag>
-        <tag>编译</tag>
-        <tag>编译后端</tag>
       </tags>
   </entry>
 </search>
