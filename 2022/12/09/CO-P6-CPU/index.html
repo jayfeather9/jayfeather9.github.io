@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"jayfeather9.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="计算机组成 P6 CPU 设计文档，描述了 Verilog 完成的支持更多指令的五级流水线 MIPS CPU 的设计方案。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机组成 P6 CPU 设计文档">
+<meta property="og:url" content="http://jayfeather9.github.io/2022/12/09/CO-P6-CPU/index.html">
+<meta property="og:site_name" content="Jayfeather9&#39;s Blog">
+<meta property="og:description" content="计算机组成 P6 CPU 设计文档，描述了 Verilog 完成的支持更多指令的五级流水线 MIPS CPU 的设计方案。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-12-09T13:36:03.000Z">
+<meta property="article:modified_time" content="2023-10-20T07:06:41.234Z">
+<meta property="article:author" content="Jayfeather9">
+<meta property="article:tag" content="Arch">
+<meta property="article:tag" content="CO">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://jayfeather9.github.io/2022/12/09/CO-P6-CPU/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>计算机组成 P6 CPU 设计文档 | Jayfeather9's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Jayfeather9's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://jayfeather9.github.io/2022/12/09/CO-P6-CPU/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Jayfeather9">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Jayfeather9's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机组成 P6 CPU 设计文档
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2022-12-09 21:36:03" itemprop="dateCreated datePublished" datetime="2022-12-09T21:36:03+08:00">2022-12-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-10-20 15:06:41" itemprop="dateModified" datetime="2023-10-20T15:06:41+08:00">2023-10-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CO/" itemprop="url" rel="index"><span itemprop="name">CO</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-users"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span class="firestore-visitors-count"></span>
+            </span>
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <div class="post-description">计算机组成 P6 CPU 设计文档，描述了 Verilog 完成的支持更多指令的五级流水线 MIPS CPU 的设计方案。</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="1-单独乘除法部件"><a class="markdownIt-Anchor" href="#1-单独乘除法部件"></a> 1 单独乘除法部件</h3>
+<p>由于实际上乘除法计算需要不止一个时钟周期，如果放进ALU，在整个乘除法计算过程中就需要将整个CPU阻塞许多个时钟周期，而如果独立出来乘除法部件，就可以在进行乘除法计算的过程中“并行”地执行其他指令，而不会因为乘除法的计算延迟其他指令（比如add beq等）的进行，有助于提高CPU的效率（指降低总体运行周期数）</p>
+<p>设置独立的HI、LO寄存器也是出于类似的考量。首先，如果将乘除法放进ALU，结果按照正常计算指令存入GRF，除了前文提到的会阻塞整个CPU之外，还会遇到另一个问题——乘除法需要同时写入两个寄存器HI和LO，而我们设计的GRF只有一个写入数据端口（也只有一个写入使能端），而且如果要更改为支持同时写入两个数据，不仅GRF需要更改，整个转发逻辑都要更改，会需要对整个CPU进行许多“只对乘除法有用”的修改。</p>
+<p>而如果将乘除法模块独立出来，但不设置HI和LO寄存器，除了也会遇到上文中同时写入两个值的情况，还可能在乘除法结束计算时和别的指令“撞车”，就需要处理一系列复杂的阻塞情况。</p>
+<p>而如果独立出来HI和LO寄存器，就不会遇到上述一系列问题，是在保持原CPU设计不进行大幅更改而能支持乘除法且保持高效的最好做法。</p>
+<h3 id="2-真实的cpu实现乘除法"><a class="markdownIt-Anchor" href="#2-真实的cpu实现乘除法"></a> 2 真实的CPU实现乘除法</h3>
+<p>首先是有无符号性，无符号情况直接运算即可，有符号情况下先记录原数符号，再将原数取绝对值后运算，运算结束后根据结果的符号来处理。</p>
+<p>具体运算方面，类似实际运算中的竖式计算。</p>
+<p>乘法采用一个64位寄存器（初始为0）记录结果，对于乘数A从小到大遍历每一位，如果是0就直接将结果寄存器的数左移一位，如果是1就将乘数B加进结果寄存器后再左移一位。</p>
+<p>除法采用32位商寄存器和65位余数寄存器，首先将余数寄存器填充为被除数的绝对值（的零扩展），商寄存器填充0，每次将商寄存器左移一位，最低位填充1，余数寄存器减去除数寄存器内容，判断余数是否小于0：如果是则将商寄存器最低位置1并将余数寄存器减去的内容加回来。</p>
+<p>乘除法均为完成32次迭代后输出结果。</p>
+<h3 id="3-结合实现分析如何处理busy带来的周期阻塞"><a class="markdownIt-Anchor" href="#3-结合实现分析如何处理busy带来的周期阻塞"></a> 3 结合实现分析如何处理Busy带来的周期阻塞</h3>
+<p>添加一个Busy信号，同时乘除法相关操作指令（mfhi mflo mthi mtlo）有对应的MNDUsage控制信号或MNDWE控制信号会置为非默认值（有对应宏定义）。当F/D流水线寄存器中的指令通过这两个信号判断是这类指令时，如果Busy为真，则进行阻塞。</p>
+<h3 id="4-采用字节使能信号的好处"><a class="markdownIt-Anchor" href="#4-采用字节使能信号的好处"></a> 4 采用字节使能信号的好处</h3>
+<p>清晰性：四个位每位对应一个字节，只要看信号的二进制表示就能清晰地看出需要写入哪几个字节，很明确也很简单。相比之下如果对不同位置sb/sh/sw进行编码，则需要4+2+1=7种信号，虽然只需要三位，但是读起来很不清楚，需要查信号的定义方法才能确定是怎么读信号，不够清晰。</p>
+<p>统一性：如果采用上述7种信号3位编码，需要单独判断，单独处理sb/sh/sw三种情况，如果出现其他写内存方式还需要另行扩展，十分不便。而采用字节使能信号则可以直接判断每一字节对应信号是否是1，如果是1就写入对应数据即可，十分统一。</p>
+<h3 id="5-使用字节读写的高效情况"><a class="markdownIt-Anchor" href="#5-使用字节读写的高效情况"></a> 5 使用字节读写的高效情况</h3>
+<p>我们在进行lw和sw指令时，很多时候都是范围较小的数据，一个字长的范围有大部分内容在写入前后都是0（或读取时高位都是0，读不读不影响结果），因此“实际上”从DM取得的有效数据和向DM写入的有效数据不足一字长。在需要读取的数据能确定同一字长其他字节均为0的情况下，或需要写入的数据同字长其他字节均为0且写入内存同字其他部分也都为0的情况下，则不需要按字读写，只需要按字节读写（或类似地，按半字读写）能获得更高的效率。</p>
+<h3 id="6-对抗复杂性的抽象和规范手段"><a class="markdownIt-Anchor" href="#6-对抗复杂性的抽象和规范手段"></a> 6 对抗复杂性的抽象和规范手段</h3>
+<p>采用了分类译码的方式，在集中式译码器中通过多重case语句，先将同类语句分类，设置这一类语句共同的控制信号值，再用内层case对每一种不同语句设置特定控制信号值。</p>
+<p>同时对于乘除法相关指令采用了四个控制信号的方式，虽然这样控制信号较多，但逻辑清晰便于使用整理。</p>
+<p>同时所有的值都采用宏定义的方式统一命名，减少出错情况。下面是译码器中乘除法部分，作为示例：</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="7-不同指令类型组合的冲突和解决方式"><a class="markdownIt-Anchor" href="#7-不同指令类型组合的冲突和解决方式"></a> 7 不同指令类型组合的冲突和解决方式</h3>
+<p>在P5的基础上，计算指令、访存指令和跳转分支指令除了对应的ALU计算方式和CMP比较方式有所区分之外，并没有明显区别，实际的冲突类型和冲突方式和P5类似，不再赘述。</p>
+<p>因此主要新增问题集中在乘除法指令上。主要有以下几个问题：</p>
+<ul>
+<li>乘除法指令在busy时的阻塞问题，在mult/multu/div/divu后不同周期后跟mfhi/mflo/mthi/mtlo进行测试</li>
+<li>mfhi/mflo需要写入GRF，因此后跟jr/beq/bne时需要阻塞，分别举例阻塞即可</li>
+<li>mult/multu/div/divu/mthi/mtlo需要在E级使用对应寄存器的值，需要考虑相关的阻塞和转发问题，如跟在lw后等（如果采用A-T法，将对应的Tuse值设置为和计算类指令相同即可，实际上如果P5没有问题的情况下应该不容易出问题）</li>
+</ul>
+<p>实际问题集中在增量开发上，只要前期CPU设计符合规范，抽象方法合适，基本上不容易出大问题。</p>
+<h3 id="8-测试策略"><a class="markdownIt-Anchor" href="#8-测试策略"></a> 8 测试策略</h3>
+<p>首先我们将指令分为如下几个大类：（含扩展指令）（实际在译码器中也是类似的分类）</p>
+<ul>
+<li>R型 跳转到寄存器 jr jalr</li>
+<li>R型计算 add addu sub subu and or xor nor slt sltu sll sllv srl srlv sra srav</li>
+<li>R型 乘除法相关 mult multu div divu mfhi mflo mthi mtlo</li>
+<li>lui</li>
+<li>I型计算 ori andi addi addiu slti sltiu xori</li>
+<li>分支 beq bne bgez bgtz blez bltz</li>
+<li>读内存 lw lh lhu lb lbu</li>
+<li>写内存 sw sh sb</li>
+<li>J型指令 jal j</li>
+</ul>
+<h4 id="测试预处理"><a class="markdownIt-Anchor" href="#测试预处理"></a> 测试预处理</h4>
+<p>首先随机生成大量计算指令，将1～31号寄存器填充好不同的值</p>
+<p>然后随机生成大量写内存指令，尽量将内存填入不同内容</p>
+<h4 id="转发测试"><a class="markdownIt-Anchor" href="#转发测试"></a> 转发测试</h4>
+<ul>
+<li>W-E转发，隔一条指令分别运行同寄存器的读内存指令和（R型/I型计算，乘除法相关）指令</li>
+<li>M-E转发，连续运行同寄存器递增的（R型/I型计算，乘除法相关）指令</li>
+<li>W-M转发，读内存后加写内存操作，同寄存器</li>
+<li>GPR内部转发，隔两条指令运行的同寄存器指令，第一条有写操作，第二条用到同寄存器即可</li>
+<li>M-D转发，隔一条指令分别运行同寄存器指令，第一条有写操作，第二条用到同寄存器即可</li>
+</ul>
+<p>将上述不同转发情况用生成程序+修改操作数进行多次叠加修改，测试多重转发，随机生成多组连续内容。</p>
+<h4 id="阻塞测试"><a class="markdownIt-Anchor" href="#阻塞测试"></a> 阻塞测试</h4>
+<ul>
+<li>连续运行同寄存器的读内存指令和（R型/I型计算，乘除法相关）指令</li>
+<li>在分支指令或跳转寄存器指令前加任何写寄存器指令</li>
+</ul>
+<h4 id="综合测试"><a class="markdownIt-Anchor" href="#综合测试"></a> 综合测试</h4>
+<ul>
+<li>首先对计算指令进行测试，随机生成大量不含跳转或分支指令的各类计算指令，考虑按照五条进行分类，不同类别排列组合进行测试</li>
+<li>对于每种指令，测试分支类和跳转类指令分别在紧跟、隔一条、隔两条、隔三条的位置跳转的情况，分别对向前跳转和向后跳转进行测试</li>
+<li>先向某寄存器写入对应跳转目标的指令位置，然后分别测试前述写入指令和跳转到寄存器指令间隔0、1、2、3条指令的情况，再在相隔更远的情况下用类似分支和跳转类测试的方式测试，注意不能更改跳转目标寄存器。</li>
+</ul>
+<h2 id="指令集综述"><a class="markdownIt-Anchor" href="#指令集综述"></a> 指令集综述</h2>
+<h3 id="简要说明"><a class="markdownIt-Anchor" href="#简要说明"></a> 简要说明</h3>
+<p>包含指令集如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">add sub and or slt sltu lui</span><br><span class="line">addi andi ori</span><br><span class="line">lb lh lw sb sh sw</span><br><span class="line">mult multu div divu mfhi mflo mthi mtlo</span><br><span class="line">beq bne jal jr</span><br></pre></td></tr></table></figure>
+<h3 id="r-i-j-型指令说明"><a class="markdownIt-Anchor" href="#r-i-j-型指令说明"></a> R I J 型指令说明</h3>
+<h4 id="r型"><a class="markdownIt-Anchor" href="#r型"></a> R型</h4>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">add sub and or slt sltu mult multu div divu mfhi mflo mthi mtlo jr</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16 (5)</th>
+<th style="text-align:center">15~11 (5)</th>
+<th style="text-align:center">10~6 (5)</th>
+<th style="text-align:center">5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">五位立即数</td>
+<td style="text-align:center">操作码</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">rd</td>
+<td style="text-align:center">shamt (sa)</td>
+<td style="text-align:center">func</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">恒为0x0</td>
+<td style="text-align:center">第一参</td>
+<td style="text-align:center">第二参</td>
+<td style="text-align:center">目的参</td>
+<td style="text-align:center">移位量</td>
+<td style="text-align:center">指示操作类型</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th>25~21 (5)</th>
+<th>20~16 (5)</th>
+<th>15~11 (5)</th>
+<th>10~6 (5)</th>
+<th>5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td>寄存器地址</td>
+<td>寄存器地址</td>
+<td>寄存器地址</td>
+<td>五位立即数</td>
+<td>操作码</td>
+</tr>
+<tr>
+<td>指令名</td>
+<td>指令解释</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>shamt  (sa)</td>
+<td>func</td>
+</tr>
+<tr>
+<td>add</td>
+<td>GPR[rd] &lt;= GPR[rs] + GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_0000</td>
+</tr>
+<tr>
+<td>sub</td>
+<td>GPR[rd] &lt;= GPR[rs] - GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_0010</td>
+</tr>
+<tr>
+<td>and</td>
+<td>GPR[rd] &lt;= GPR[rs] &amp; GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_0100</td>
+</tr>
+<tr>
+<td>or</td>
+<td>GPR[rd] &lt;= GPR[rs] | GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_0101</td>
+</tr>
+<tr>
+<td>slt</td>
+<td>GPR[rd] &lt;= (GPR[rs] &lt; GPR[rt]) ? 32’b1 : 32’b0</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_1010</td>
+</tr>
+<tr>
+<td>sltu</td>
+<td>GPR[rd] &lt;= (GPR[rs] &lt; GPR[rt]) ? 32’b1 : 32’b0  (u)</td>
+<td>rs</td>
+<td>rt</td>
+<td>rd</td>
+<td>00000</td>
+<td>10_1011</td>
+</tr>
+<tr>
+<td>mult</td>
+<td>(HI,LO) &lt;= GPR[rs] * GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_1000</td>
+</tr>
+<tr>
+<td>multu</td>
+<td>(HI,LO) &lt;= GPR[rs] * GPR[rt] (u)</td>
+<td>rs</td>
+<td>rt</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_1001</td>
+</tr>
+<tr>
+<td>div</td>
+<td>(HI,LO) &lt;= GPR[rs] / GPR[rt]</td>
+<td>rs</td>
+<td>rt</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_1010</td>
+</tr>
+<tr>
+<td>divu</td>
+<td>(HI,LO) &lt;= GPR[rs] / GPR[rt] (u)</td>
+<td>rs</td>
+<td>rt</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_1011</td>
+</tr>
+<tr>
+<td>mfhi</td>
+<td>GPR[rd] &lt;= HI</td>
+<td>00000</td>
+<td>00000</td>
+<td>rd</td>
+<td>00000</td>
+<td>01_0000</td>
+</tr>
+<tr>
+<td>mflo</td>
+<td>GPR[rd] &lt;= LO</td>
+<td>00000</td>
+<td>00000</td>
+<td>rd</td>
+<td>00000</td>
+<td>01_0010</td>
+</tr>
+<tr>
+<td>mthi</td>
+<td>HI &lt;= GPR[rs]</td>
+<td>rs</td>
+<td>00000</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_0001</td>
+</tr>
+<tr>
+<td>mtlo</td>
+<td>LO &lt;= GPR[rs]</td>
+<td>rs</td>
+<td>00000</td>
+<td>00000</td>
+<td>00000</td>
+<td>01_0011</td>
+</tr>
+<tr>
+<td>jr</td>
+<td>PC &lt;= GPR[rs]</td>
+<td>rs</td>
+<td>00000</td>
+<td>00000</td>
+<td>00000</td>
+<td>00_1000</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i型"><a class="markdownIt-Anchor" href="#i型"></a> I型</h3>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lui addi andi ori lb lh lw sb sh sw beq bne</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">立即数</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">imm</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">指示操作类型</td>
+<td style="text-align:center">第一参</td>
+<td style="text-align:center">目的参</td>
+<td style="text-align:center">立即数</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+<th>31~26 (6)</th>
+<th>25~21 (5)</th>
+<th>20~16(5)</th>
+<th>15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td>操作码</td>
+<td>寄存器地址</td>
+<td>寄存器地址</td>
+<td>立即数</td>
+</tr>
+<tr>
+<td>指令名</td>
+<td>指令解释</td>
+<td>OP</td>
+<td>rs</td>
+<td>rt</td>
+<td>imm</td>
+</tr>
+<tr>
+<td>lui</td>
+<td>GPR[rt] &lt;= {imm, {16{1’b0}}}</td>
+<td>00_1111</td>
+<td>00000</td>
+<td>rt</td>
+<td>imm</td>
+</tr>
+<tr>
+<td>addi</td>
+<td>GPR[rt] &lt;= GPR[rs] + sign_ext(imm)</td>
+<td>00_1000</td>
+<td>rs</td>
+<td>rt</td>
+<td>imm</td>
+</tr>
+<tr>
+<td>andi</td>
+<td>GPR[rt] &lt;= GPR[rs] &amp; zero_ext(imm)</td>
+<td>00_1100</td>
+<td>rs</td>
+<td>rt</td>
+<td>imm</td>
+</tr>
+<tr>
+<td>ori</td>
+<td>GPR[rt] &lt;= GPR[rs] | zero_ext(imm)</td>
+<td>00_1101</td>
+<td>rs</td>
+<td>rt</td>
+<td>imm</td>
+</tr>
+<tr>
+<td>lb</td>
+<td>GPR[rt] &lt;= memory[GPR[base] + offset] (byte)</td>
+<td>10_0000</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>lh</td>
+<td>GPR[rt] &lt;= memory[GPR[base] + offset] (half byte)</td>
+<td>10_0001</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>lw</td>
+<td>GPR[rt] &lt;= memory[GPR[base] + offset] (word)</td>
+<td>10_0011</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>sb</td>
+<td>memory[GPR[base] + offset] &lt;= GPR[rt] (byte)</td>
+<td>10_1000</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>sh</td>
+<td>memory[GPR[base] + offset] &lt;= GPR[rt] (half byte)</td>
+<td>10_1001</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>sw</td>
+<td>memory[GPR[base] + offset] &lt;= GPR[rt] (word)</td>
+<td>10_1011</td>
+<td>base</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>beq</td>
+<td>PC &lt;= PC + 4 + sign_ext({offset, 2’b0}) if  (GPR[rs] == GPR[rt])</td>
+<td>00_0100</td>
+<td>rs</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+<tr>
+<td>bne</td>
+<td>PC &lt;= PC + 4 + sign_ext({offset, 2’b0}) if  (GPR[rs] != GPR[rt])</td>
+<td>00_0101</td>
+<td>rs</td>
+<td>rt</td>
+<td>offset</td>
+</tr>
+</tbody>
+</table>
+<h3 id="j型"><a class="markdownIt-Anchor" href="#j型"></a> J型</h3>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jal</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~0 (26)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">指令地址</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">address</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">指示操作类型</td>
+<td style="text-align:center">目标跳转位置</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ifu-取指令单元-f"><a class="markdownIt-Anchor" href="#ifu-取指令单元-f"></a> IFU 取指令单元 (F)</h2>
+<h3 id="功能要求"><a class="markdownIt-Anchor" href="#功能要求"></a> 功能要求</h3>
+<ul>
+<li>内部包括 PC（程序计数器）、IM（指令存储器）及相关逻辑。</li>
+<li>PC <strong>同步复位</strong>，复位值为起始地址。</li>
+<li><strong>起始地址：0x00003000。</strong></li>
+<li>IM 容量为 32bit × 4096字（按字取的地址宽度12位）。</li>
+<li>支持冻结</li>
+<li><strong>可能出现问题，不确定，目前未考虑，后续debug可以测试</strong></li>
+</ul>
+<h3 id="输入端口"><a class="markdownIt-Anchor" href="#输入端口"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset 同步复位信号</li>
+<li>Froze 冻结信号，收到该信号时忽略时钟上沿</li>
+<li>PCSrc [1:0] 决定下条PC指令使用何处输入</li>
+<li>CMPOut 对应CMP的输出，代表是否允许branch，1代表允许</li>
+<li>PCImm [15:0] 符号扩展后的立即数（对应beq给定的立即数）</li>
+<li>PCInstrIndex [25:0] J型指令的立即数值（对应jal给定的立即数）</li>
+<li>PCJumpReg [31:0] 来自寄存器的跳转地址（对应jr指令对应地址读取到的值）</li>
+</ul>
+<h3 id="输出端口"><a class="markdownIt-Anchor" href="#输出端口"></a> 输出端口</h3>
+<ul>
+<li>Inst [31:0] 取得的指令</li>
+<li>PCNxt [31:0] 对应PC+4，用于jal</li>
+</ul>
+<h3 id="行为逻辑"><a class="markdownIt-Anchor" href="#行为逻辑"></a> 行为逻辑</h3>
+<ul>
+<li>支持同步复位，复位到0x3000</li>
+<li>任何时刻，输出当前PC寄存器对应地址中的指令</li>
+<li>收到冻结信号时忽略clk上沿，PC &lt;= PC</li>
+<li>每个clk上沿更新PC的值：</li>
+</ul>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b00</span> || (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">0</span>)) <span class="keyword">begin</span> <span class="comment">// 无b/j指令或b指令无效，直接PC+=4</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span>;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">1</span>) <span class="keyword">begin</span> <span class="comment">// b类指令生效</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span> + &#123;&#123;<span class="number">14</span>&#123;PCImm[<span class="number">15</span>]&#125;&#125;, PCImm, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b10</span>) <span class="keyword">begin</span> <span class="comment">// jal</span></span><br><span class="line">  PC &lt;= &#123;PC[<span class="number">31</span>:<span class="number">28</span>], PCInstrIndex, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">begin</span> <span class="comment">// jr</span></span><br><span class="line">  PC &lt;= PCJumpReg;</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+<h2 id="controller-集中译码器-f"><a class="markdownIt-Anchor" href="#controller-集中译码器-f"></a> Controller 集中译码器 (F)</h2>
+<h3 id="功能要求-2"><a class="markdownIt-Anchor" href="#功能要求-2"></a> 功能要求</h3>
+<p>将输入的OPCode和func转化为CPU各部分对应信号输出，各信号随流水线逐级传递。</p>
+<h3 id="实现方式"><a class="markdownIt-Anchor" href="#实现方式"></a> 实现方式</h3>
+<p>分类判断后指定各项输出的值。</p>
+<h3 id="输入端口-2"><a class="markdownIt-Anchor" href="#输入端口-2"></a> 输入端口</h3>
+<ul>
+<li>OPCode [5:0] 标识命令种类的指令，按MIPS汇编标准执行</li>
+<li>func [5:0] 标识R型指令具体种类的指令，按MIPS汇编标准执行</li>
+</ul>
+<h3 id="输出端口-2"><a class="markdownIt-Anchor" href="#输出端口-2"></a> 输出端口</h3>
+<ul>
+<li>
+<p>CmpType [3:0] 分支指令比较方法 -&gt;CMP</p>
+</li>
+<li>
+<p>ExtType 决定扩展器扩展类型，0零扩展，1符号扩展 -&gt;EXT</p>
+</li>
+<li>
+<p>PCSrc [1:0] 决定下条PC指令使用何处输入，00代表PC+=4，01代表branch，10代表jal，11代表jr -&gt;IFU</p>
+</li>
+<li>
+<p>ALUCtrl [3:0] 决定当前ALU执行何种运算，具体见ALU说明</p>
+</li>
+<li>
+<p>ALUSrc [1:0] 决定ALU的第二参来自GRF的RD2（对应值0）还是立即数（对应值1）还是shamt（对应值2）</p>
+</li>
+<li>
+<p>MNDType [3:0] 计算方式 0代表有符号乘法 1代表无符号乘法 2代表有符号除法 3代表无符号除法</p>
+</li>
+<li>
+<p>MNDUsage [2:0] 决定是否使用HI或LO作为E级计算结果的输出，0用ALU，1用HI，2用LO</p>
+</li>
+<li>
+<p>MNDWE [1:0] 写使能信号，0不写，1写HI，2写LO</p>
+</li>
+<li>
+<p>MNDStart 决定是否开始乘除运算</p>
+</li>
+<li>
+<p>MemWrite 决定DM是否允许写入</p>
+</li>
+<li>
+<p>MemType [3:0] 向寄存器存储数据的类型（具体说明参考DM）</p>
+</li>
+<li>
+<p>RegDataSrc [1:0] 决定GRF写入数据来源，00代表ALU输出，01代表DM输出，10代表PCNxt</p>
+</li>
+<li>
+<p>RegDest [1:0]决定GRF写入地址来源是Inst[20:16]（rt, 对应值00，I型）还是Inst[15:11]（rd, 对应值01，R型），还是31即$ra（对应值10，jal）</p>
+</li>
+<li>
+<p>RegWrite 决定GRF是否允许写入</p>
+</li>
+<li>
+<p>Tnew [3:0] 对应A-T法的Tnew，为D端值，每经过一级寄存器Tnew = max{Tnew-1, 0}</p>
+</li>
+<li>
+<p>TuseE [3:0] 对应A-T法的Tuse，对应A1参数的Tuse</p>
+</li>
+<li>
+<p>TuseM [3:0] 对应A-T法的Tuse，对应A2参数的Tuse</p>
+</li>
+</ul>
+<h2 id="cmp-比较模块-d"><a class="markdownIt-Anchor" href="#cmp-比较模块-d"></a> CMP 比较模块 (D)</h2>
+<h3 id="功能要求-3"><a class="markdownIt-Anchor" href="#功能要求-3"></a> 功能要求</h3>
+<ul>
+<li>实现单周期CPU中ALU为分支指令实现的比较功能</li>
+<li>纯组合逻辑</li>
+</ul>
+<h3 id="输入端口-3"><a class="markdownIt-Anchor" href="#输入端口-3"></a> 输入端口</h3>
+<ul>
+<li>RD1 [31:0] 第一参</li>
+<li>RD2 [31:0] 第二参</li>
+<li>CmpType [3:0] 比较方法</li>
+</ul>
+<h3 id="输出端口-3"><a class="markdownIt-Anchor" href="#输出端口-3"></a> 输出端口</h3>
+<ul>
+<li>CmpOut 输出是否可以进行分支</li>
+</ul>
+<h3 id="行为描述"><a class="markdownIt-Anchor" href="#行为描述"></a> 行为描述</h3>
+<table>
+<thead>
+<tr>
+<th>CmpType</th>
+<th>比较行为描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>输出是否相等，即 RD1 == RD2</td>
+</tr>
+<tr>
+<td>1</td>
+<td>暂不定义</td>
+</tr>
+<tr>
+<td>2</td>
+<td>暂不定义</td>
+</tr>
+<tr>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ext-扩展器-d"><a class="markdownIt-Anchor" href="#ext-扩展器-d"></a> EXT 扩展器 (D)</h2>
+<h3 id="功能要求-4"><a class="markdownIt-Anchor" href="#功能要求-4"></a> 功能要求</h3>
+<ul>
+<li>将输入的立即数进行扩展</li>
+</ul>
+<h3 id="输入端口-4"><a class="markdownIt-Anchor" href="#输入端口-4"></a> 输入端口</h3>
+<ul>
+<li>Imm [15:0] Inst指令中的立即数部分</li>
+<li>ExtType 扩展方式</li>
+</ul>
+<h3 id="输出端口-4"><a class="markdownIt-Anchor" href="#输出端口-4"></a> 输出端口</h3>
+<ul>
+<li>ExtOut [31:0] 扩展后的结果</li>
+</ul>
+<h3 id="行为描述-2"><a class="markdownIt-Anchor" href="#行为描述-2"></a> 行为描述</h3>
+<table>
+<thead>
+<tr>
+<th>ExtType</th>
+<th>扩展行为描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>进行零扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><msup><mn>1</mn><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mi>b</mi><mn>0</mn><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{1&#x27;b0\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.001892em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord"><span class="mord">1</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.751892em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span><span class="mord mathnormal">b</span><span class="mord">0</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
+</tr>
+<tr>
+<td>1</td>
+<td>进行符号扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><mi>I</mi><mi>m</mi><mi>m</mi><mo stretchy="false">[</mo><mn>15</mn><mo stretchy="false">]</mo><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{Imm[15]\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord mathnormal" style="margin-right:0.07847em;">I</span><span class="mord mathnormal">m</span><span class="mord mathnormal">m</span><span class="mopen">[</span><span class="mord">1</span><span class="mord">5</span><span class="mclose">]</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
+</tr>
+</tbody>
+</table>
+<h2 id="grf-通用寄存器组-d"><a class="markdownIt-Anchor" href="#grf-通用寄存器组-d"></a> GRF 通用寄存器组 (D)</h2>
+<h3 id="功能要求-5"><a class="markdownIt-Anchor" href="#功能要求-5"></a> 功能要求</h3>
+<ul>
+<li>用具有写使能的寄存器实现，寄存器总数为 32 个，应具有<strong>同步复位</strong>功能。</li>
+<li><strong>0 号寄存器</strong>的值始终保持为 0。其他寄存器<strong>初始值（复位后）均为 0</strong>，无需专门设置。</li>
+<li>支持GPR内部转发，即读取地址等于写入地址时，直接输出写入数据。</li>
+</ul>
+<h3 id="输入端口-5"><a class="markdownIt-Anchor" href="#输入端口-5"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset同步复位信号</li>
+<li>WE 写使能信号</li>
+<li>A1 [4:0] 第一读取地址</li>
+<li>A2 [4:0] 第二读取地址</li>
+<li>A3 [4:0] 写入地址</li>
+<li>WD [31:0] 写入数据输入</li>
+</ul>
+<h3 id="输出端口-5"><a class="markdownIt-Anchor" href="#输出端口-5"></a> 输出端口</h3>
+<ul>
+<li>RD1 [31:0] 第一读取输出 输出A1地址的寄存器中的数据</li>
+<li>RD2 [31:0] 第二读取输出 输出A2地址的寄存器中的数据</li>
+</ul>
+<h3 id="功能说明"><a class="markdownIt-Anchor" href="#功能说明"></a> 功能说明</h3>
+<ul>
+<li>任何时刻，RD1和RD2都输出A1和A2对应地址的寄存器中的数据</li>
+<li>Reset同步复位，将所有寄存器复位为0</li>
+<li>0号寄存器永远保持为0</li>
+<li>当WE为真时，将WD的数据在clk上沿写入A3对应地址的寄存器</li>
+<li>读取地址等于写入地址时，直接输出写入数据。</li>
+</ul>
+<h2 id="alu-算术逻辑单元-e"><a class="markdownIt-Anchor" href="#alu-算术逻辑单元-e"></a> ALU 算术逻辑单元 (E)</h2>
+<h3 id="功能要求-6"><a class="markdownIt-Anchor" href="#功能要求-6"></a> 功能要求</h3>
+<ul>
+<li>提供 32 位加、减、或运算及大小比较等功能。</li>
+<li>加减法按无符号处理（不考虑溢出）。</li>
+</ul>
+<h3 id="输入端口-6"><a class="markdownIt-Anchor" href="#输入端口-6"></a> 输入端口</h3>
+<ul>
+<li>SrcA [31:0] 第一个参数输入</li>
+<li>SrcB [31:0] 第二个参数输入</li>
+<li>ALUCtrl [3:0] ALU操作类型控制码</li>
+</ul>
+<h3 id="输出端口-6"><a class="markdownIt-Anchor" href="#输出端口-6"></a> 输出端口</h3>
+<ul>
+<li>ALUResult [31:0] 计算结果</li>
+</ul>
+<h3 id="控制信号说明"><a class="markdownIt-Anchor" href="#控制信号说明"></a> 控制信号说明</h3>
+<table>
+<thead>
+<tr>
+<th>ALUCtrl</th>
+<th>计算行为描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>按位或</td>
+</tr>
+<tr>
+<td>1</td>
+<td>按位与</td>
+</tr>
+<tr>
+<td>2</td>
+<td>不判断溢出的加法</td>
+</tr>
+<tr>
+<td>3</td>
+<td>不判断溢出的减法</td>
+</tr>
+<tr>
+<td>4</td>
+<td>立即数置高位</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mnd-乘除法模块e"><a class="markdownIt-Anchor" href="#mnd-乘除法模块e"></a> MND 乘除法模块（E）</h2>
+<h3 id="功能要求-7"><a class="markdownIt-Anchor" href="#功能要求-7"></a> 功能要求</h3>
+<ul>
+<li>自 Start 信号有效后的第 1 个时钟上升沿开始，乘除法部件开始执行运算，同时将 Busy 置位为 1。</li>
+<li>在运算结果保存到 HI 寄存器和 LO 寄存器后，Busy 位清除为 0。</li>
+<li>当 Busy 信号或 Start 信号为 1 时，<code>mult, multu, div, divu, mfhi, mflo, mthi, mtlo</code> 等乘除法相关的指令均被阻塞在 D 流水级。</li>
+<li>数据写入 HI 寄存器或 LO 寄存器，均只需 1 个时钟周期。</li>
+</ul>
+<h3 id="输入端口-7"><a class="markdownIt-Anchor" href="#输入端口-7"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset 同步复位信号</li>
+<li>start 开始计算信号</li>
+<li>MNDWE [1:0] 写使能信号，0不写，1写HI，2写LO</li>
+<li>MNDType [3:0] 计算方式 0代表有符号乘法 1代表无符号乘法 2代表有符号除法 3代表无符号除法</li>
+<li>RD1 [31:0] 计算第一参</li>
+<li>RD2 [31:0] 计算第二参</li>
+</ul>
+<h3 id="输出端口-7"><a class="markdownIt-Anchor" href="#输出端口-7"></a> 输出端口</h3>
+<ul>
+<li>busy 运算时指示信号</li>
+<li>HI [31:0] HI寄存器值</li>
+<li>LO [31:0] LO寄存器值</li>
+</ul>
+<h2 id="hh-冒险处理模块"><a class="markdownIt-Anchor" href="#hh-冒险处理模块"></a> HH 冒险处理模块</h2>
+<h3 id="功能要求-8"><a class="markdownIt-Anchor" href="#功能要求-8"></a> 功能要求</h3>
+<ul>
+<li>判断是否进行阻塞/转发操作并执行</li>
+<li>组合逻辑</li>
+</ul>
+<h3 id="输入端口-8"><a class="markdownIt-Anchor" href="#输入端口-8"></a> 输入端口</h3>
+<h4 id="重要说明"><a class="markdownIt-Anchor" href="#重要说明"></a> 重要说明</h4>
+<p><strong>下面提到的A1和A2均指第一个读取值和第二个读取值！！！比如对R型指令就是rs和rt，对于I型指令可能是rs和rt（如beq）也可能是rs和无（如ori）！！！</strong></p>
+<p><strong>而A3指的是写入值！！不一定是rd！！！对R型指令是rd，对有写入内容的I型指令是rt！！！</strong></p>
+<h4 id="fd流水线寄存器"><a class="markdownIt-Anchor" href="#fd流水线寄存器"></a> F/D流水线寄存器</h4>
+<ul>
+<li>FD_TuseE [3:0] 此时F/D流水线寄存器中的TuseE</li>
+<li>FD_TuseM [3:0] 此时F/D流水线寄存器中的TuseM</li>
+<li>FD_A1 [4:0] F/D流水线寄存器中的A1地址</li>
+<li>FD_A2 [4:0] F/D流水线寄存器中的A2地址</li>
+<li>FD_RD1 [31:0] F/D流水线寄存器中的RD1</li>
+<li>FD_RD2 [31:0] F/D流水线寄存器中的RD2</li>
+<li>FD_MNDUsage [2:0] F/D流水线寄存器中的MNDUsage</li>
+</ul>
+<h4 id="de流水线寄存器"><a class="markdownIt-Anchor" href="#de流水线寄存器"></a> D/E流水线寄存器</h4>
+<ul>
+<li>DE_TuseE [3:0] 此时D/E流水线寄存器中的TuseE</li>
+<li>DE_TuseM [3:0] 此时D/E流水线寄存器中的TuseM</li>
+<li>DE_A1 [4:0] D/E流水线寄存器中的A1地址</li>
+<li>DE_A2 [4:0] D/E流水线寄存器中的A2地址</li>
+<li>DE_A3 [4:0] D/E流水线寄存器中的A3地址</li>
+<li>DE_RD1 [31:0] D/E流水线寄存器中的RD1</li>
+<li>DE_RD2 [31:0] D/E流水线寄存器中的RD2</li>
+<li>DE_Tnew [3:0] 此时D/E流水线寄存器中的Tnew</li>
+<li>DE_RegWrite 此时D/E流水线寄存器中的RegWrite</li>
+</ul>
+<h4 id="mnd模块"><a class="markdownIt-Anchor" href="#mnd模块"></a> MND模块</h4>
+<ul>
+<li>MND_Busy MND的Busy信号，代表正在运算乘除法</li>
+</ul>
+<h4 id="em流水线寄存器"><a class="markdownIt-Anchor" href="#em流水线寄存器"></a> E/M流水线寄存器</h4>
+<ul>
+<li>EM_TuseM [3:0] 此时E/M流水线寄存器中的TuseM</li>
+<li>EM_A2 [4:0] E/M流水线寄存器中的A2地址</li>
+<li>EM_A3 [4:0] E/M流水线寄存器中的A3地址</li>
+<li>EM_RD2 [31:0] E/M流水线寄存器中的RD2</li>
+<li>EM_Tnew [3:0] 此时E/M流水线寄存器中的Tnew</li>
+<li>EM_RegWrite E/M流水线寄存器中代表是否可写的指令</li>
+<li>EM_RegData [31:0] E/M流水线寄存器中GRF写入数据</li>
+</ul>
+<h4 id="mw流水线寄存器"><a class="markdownIt-Anchor" href="#mw流水线寄存器"></a> M/W流水线寄存器</h4>
+<ul>
+<li>MW_Tnew [3:0] 此时E/M流水线寄存器中的Tnew</li>
+<li>MW_RegWrite M/W流水线寄存器中代表是否可写的指令，同时指示当前是否有写入操作</li>
+<li>MW_A3 [4:0] M/W流水线寄存器中的A3地址</li>
+<li>MW_RD2 [31:0]</li>
+<li>MW_RegData [31:0] M/W流水线寄存器中GRF写入数据</li>
+</ul>
+<h3 id="输出端口-8"><a class="markdownIt-Anchor" href="#输出端口-8"></a> 输出端口</h3>
+<ul>
+<li>Froze 向IFU，F/D和D/E流水线寄存器传递的冻结信号，代表输出默认值而非寄存器值</li>
+</ul>
+<h4 id="d级"><a class="markdownIt-Anchor" href="#d级"></a> D级</h4>
+<ul>
+<li>RD1ForwardD  [31:0] 寄存器读取的第一参结果</li>
+<li>RD2ForwardD  [31:0] 寄存器读取的第二参结果</li>
+</ul>
+<h4 id="e级"><a class="markdownIt-Anchor" href="#e级"></a> E级</h4>
+<ul>
+<li>RD1ForwardE  [31:0] 寄存器读取的第一参结果</li>
+<li>RD2ForwardE  [31:0] 寄存器读取的第二参结果</li>
+</ul>
+<h4 id="m级"><a class="markdownIt-Anchor" href="#m级"></a> M级</h4>
+<ul>
+<li>WDForward  [31:0] DM写入的数据结果</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Arch/" rel="tag"># Arch</a>
+              <a href="/tags/CO/" rel="tag"># CO</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/12/09/CO-P5-CPU/" rel="prev" title="计算机组成 P5 CPU 设计文档">
+      <i class="fa fa-chevron-left"></i> 计算机组成 P5 CPU 设计文档
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2023/07/05/hello-world/" rel="next" title="Hello World!">
+      Hello World! <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%80%83%E9%A2%98"><span class="nav-number">1.</span> <span class="nav-text"> 思考题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%8D%95%E7%8B%AC%E4%B9%98%E9%99%A4%E6%B3%95%E9%83%A8%E4%BB%B6"><span class="nav-number">1.1.</span> <span class="nav-text"> 1 单独乘除法部件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%9C%9F%E5%AE%9E%E7%9A%84cpu%E5%AE%9E%E7%8E%B0%E4%B9%98%E9%99%A4%E6%B3%95"><span class="nav-number">1.2.</span> <span class="nav-text"> 2 真实的CPU实现乘除法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E7%BB%93%E5%90%88%E5%AE%9E%E7%8E%B0%E5%88%86%E6%9E%90%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86busy%E5%B8%A6%E6%9D%A5%E7%9A%84%E5%91%A8%E6%9C%9F%E9%98%BB%E5%A1%9E"><span class="nav-number">1.3.</span> <span class="nav-text"> 3 结合实现分析如何处理Busy带来的周期阻塞</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E9%87%87%E7%94%A8%E5%AD%97%E8%8A%82%E4%BD%BF%E8%83%BD%E4%BF%A1%E5%8F%B7%E7%9A%84%E5%A5%BD%E5%A4%84"><span class="nav-number">1.4.</span> <span class="nav-text"> 4 采用字节使能信号的好处</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E4%BD%BF%E7%94%A8%E5%AD%97%E8%8A%82%E8%AF%BB%E5%86%99%E7%9A%84%E9%AB%98%E6%95%88%E6%83%85%E5%86%B5"><span class="nav-number">1.5.</span> <span class="nav-text"> 5 使用字节读写的高效情况</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%AF%B9%E6%8A%97%E5%A4%8D%E6%9D%82%E6%80%A7%E7%9A%84%E6%8A%BD%E8%B1%A1%E5%92%8C%E8%A7%84%E8%8C%83%E6%89%8B%E6%AE%B5"><span class="nav-number">1.6.</span> <span class="nav-text"> 6 对抗复杂性的抽象和规范手段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E4%B8%8D%E5%90%8C%E6%8C%87%E4%BB%A4%E7%B1%BB%E5%9E%8B%E7%BB%84%E5%90%88%E7%9A%84%E5%86%B2%E7%AA%81%E5%92%8C%E8%A7%A3%E5%86%B3%E6%96%B9%E5%BC%8F"><span class="nav-number">1.7.</span> <span class="nav-text"> 7 不同指令类型组合的冲突和解决方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#8-%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5"><span class="nav-number">1.8.</span> <span class="nav-text"> 8 测试策略</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E9%A2%84%E5%A4%84%E7%90%86"><span class="nav-number">1.8.1.</span> <span class="nav-text"> 测试预处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BD%AC%E5%8F%91%E6%B5%8B%E8%AF%95"><span class="nav-number">1.8.2.</span> <span class="nav-text"> 转发测试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%98%BB%E5%A1%9E%E6%B5%8B%E8%AF%95"><span class="nav-number">1.8.3.</span> <span class="nav-text"> 阻塞测试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BB%BC%E5%90%88%E6%B5%8B%E8%AF%95"><span class="nav-number">1.8.4.</span> <span class="nav-text"> 综合测试</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8C%87%E4%BB%A4%E9%9B%86%E7%BB%BC%E8%BF%B0"><span class="nav-number">2.</span> <span class="nav-text"> 指令集综述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E8%A6%81%E8%AF%B4%E6%98%8E"><span class="nav-number">2.1.</span> <span class="nav-text"> 简要说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#r-i-j-%E5%9E%8B%E6%8C%87%E4%BB%A4%E8%AF%B4%E6%98%8E"><span class="nav-number">2.2.</span> <span class="nav-text"> R I J 型指令说明</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#r%E5%9E%8B"><span class="nav-number">2.2.1.</span> <span class="nav-text"> R型</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#i%E5%9E%8B"><span class="nav-number">2.3.</span> <span class="nav-text"> I型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#j%E5%9E%8B"><span class="nav-number">2.4.</span> <span class="nav-text"> J型</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ifu-%E5%8F%96%E6%8C%87%E4%BB%A4%E5%8D%95%E5%85%83-f"><span class="nav-number">3.</span> <span class="nav-text"> IFU 取指令单元 (F)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82"><span class="nav-number">3.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3"><span class="nav-number">3.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3"><span class="nav-number">3.3.</span> <span class="nav-text"> 输出端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A1%8C%E4%B8%BA%E9%80%BB%E8%BE%91"><span class="nav-number">3.4.</span> <span class="nav-text"> 行为逻辑</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#controller-%E9%9B%86%E4%B8%AD%E8%AF%91%E7%A0%81%E5%99%A8-f"><span class="nav-number">4.</span> <span class="nav-text"> Controller 集中译码器 (F)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-2"><span class="nav-number">4.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">4.2.</span> <span class="nav-text"> 实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-2"><span class="nav-number">4.3.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-2"><span class="nav-number">4.4.</span> <span class="nav-text"> 输出端口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmp-%E6%AF%94%E8%BE%83%E6%A8%A1%E5%9D%97-d"><span class="nav-number">5.</span> <span class="nav-text"> CMP 比较模块 (D)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-3"><span class="nav-number">5.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-3"><span class="nav-number">5.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-3"><span class="nav-number">5.3.</span> <span class="nav-text"> 输出端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A1%8C%E4%B8%BA%E6%8F%8F%E8%BF%B0"><span class="nav-number">5.4.</span> <span class="nav-text"> 行为描述</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ext-%E6%89%A9%E5%B1%95%E5%99%A8-d"><span class="nav-number">6.</span> <span class="nav-text"> EXT 扩展器 (D)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-4"><span class="nav-number">6.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-4"><span class="nav-number">6.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-4"><span class="nav-number">6.3.</span> <span class="nav-text"> 输出端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%A1%8C%E4%B8%BA%E6%8F%8F%E8%BF%B0-2"><span class="nav-number">6.4.</span> <span class="nav-text"> 行为描述</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#grf-%E9%80%9A%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8%E7%BB%84-d"><span class="nav-number">7.</span> <span class="nav-text"> GRF 通用寄存器组 (D)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-5"><span class="nav-number">7.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-5"><span class="nav-number">7.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-5"><span class="nav-number">7.3.</span> <span class="nav-text"> 输出端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%AF%B4%E6%98%8E"><span class="nav-number">7.4.</span> <span class="nav-text"> 功能说明</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#alu-%E7%AE%97%E6%9C%AF%E9%80%BB%E8%BE%91%E5%8D%95%E5%85%83-e"><span class="nav-number">8.</span> <span class="nav-text"> ALU 算术逻辑单元 (E)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-6"><span class="nav-number">8.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-6"><span class="nav-number">8.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-6"><span class="nav-number">8.3.</span> <span class="nav-text"> 输出端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A7%E5%88%B6%E4%BF%A1%E5%8F%B7%E8%AF%B4%E6%98%8E"><span class="nav-number">8.4.</span> <span class="nav-text"> 控制信号说明</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mnd-%E4%B9%98%E9%99%A4%E6%B3%95%E6%A8%A1%E5%9D%97e"><span class="nav-number">9.</span> <span class="nav-text"> MND 乘除法模块（E）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-7"><span class="nav-number">9.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-7"><span class="nav-number">9.2.</span> <span class="nav-text"> 输入端口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-7"><span class="nav-number">9.3.</span> <span class="nav-text"> 输出端口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hh-%E5%86%92%E9%99%A9%E5%A4%84%E7%90%86%E6%A8%A1%E5%9D%97"><span class="nav-number">10.</span> <span class="nav-text"> HH 冒险处理模块</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E8%A6%81%E6%B1%82-8"><span class="nav-number">10.1.</span> <span class="nav-text"> 功能要求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3-8"><span class="nav-number">10.2.</span> <span class="nav-text"> 输入端口</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E8%A6%81%E8%AF%B4%E6%98%8E"><span class="nav-number">10.2.1.</span> <span class="nav-text"> 重要说明</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#fd%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">10.2.2.</span> <span class="nav-text"> F&#x2F;D流水线寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#de%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">10.2.3.</span> <span class="nav-text"> D&#x2F;E流水线寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mnd%E6%A8%A1%E5%9D%97"><span class="nav-number">10.2.4.</span> <span class="nav-text"> MND模块</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#em%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">10.2.5.</span> <span class="nav-text"> E&#x2F;M流水线寄存器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#mw%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%AF%84%E5%AD%98%E5%99%A8"><span class="nav-number">10.2.6.</span> <span class="nav-text"> M&#x2F;W流水线寄存器</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3-8"><span class="nav-number">10.3.</span> <span class="nav-text"> 输出端口</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#d%E7%BA%A7"><span class="nav-number">10.3.1.</span> <span class="nav-text"> D级</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#e%E7%BA%A7"><span class="nav-number">10.3.2.</span> <span class="nav-text"> E级</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#m%E7%BA%A7"><span class="nav-number">10.3.3.</span> <span class="nav-text"> M级</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jayfeather9</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jayfeather9</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+  <script src="https://www.gstatic.com/firebasejs/6.3.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.3.3/firebase-firestore.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey   : '',
+      projectId: ''
+    });
+
+    function getCount(doc, increaseCount) {
+      // IncreaseCount will be false when not in article page
+      return doc.get().then(d => {
+        var count = 0;
+        if (!d.exists) { // Has no data, initialize count
+          if (increaseCount) {
+            doc.set({
+              count: 1
+            });
+            count = 1;
+          }
+        } else { // Has data
+          count = d.data().count;
+          if (increaseCount) {
+            // If first view this article
+            doc.set({ // Increase count
+              count: count + 1
+            });
+            count++;
+          }
+        }
+
+        return count;
+      });
+    }
+
+    function appendCountTo(el) {
+      return count => {
+        el.innerText = count;
+      }
+    }
+  </script>
+  <script>
+    (function() {
+      var db = firebase.firestore();
+      var articles = db.collection('articles');
+
+      if (CONFIG.page.isPost) { // Is article page
+        var title = document.querySelector('.post-title').innerText.trim();
+        var doc = articles.doc(title);
+        var increaseCount = CONFIG.hostname === location.hostname;
+        if (localStorage.getItem(title)) {
+          increaseCount = false;
+        } else {
+          // Mark as visited
+          localStorage.setItem(title, true);
+        }
+        getCount(doc, increaseCount).then(appendCountTo(document.querySelector('.firestore-visitors-count')));
+      } else if (CONFIG.page.isHome) { // Is index page
+        var promises = [...document.querySelectorAll('.post-title')].map(element => {
+          var title = element.innerText.trim();
+          var doc = articles.doc(title);
+          return getCount(doc);
+        });
+        Promise.all(promises).then(counts => {
+          var metas = document.querySelectorAll('.firestore-visitors-count');
+          counts.forEach((val, idx) => {
+            appendCountTo(metas[idx])(val);
+          });
+        });
+      }
+    })();
+  </script>
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+</body>
+</html>
