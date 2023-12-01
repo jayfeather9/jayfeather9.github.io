@@ -4997,4 +4997,55 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
         <tag>Test</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Superscalar CPU Design - 1 - Abstract</title>
+    <url>/2023/12/01/SSCPU-1/</url>
+    <content><![CDATA[<h2 id="参数"><a class="markdownIt-Anchor" href="#参数"></a> 参数</h2>
+<ul>
+<li>指令集：MIPS 32位</li>
+<li>顺序 2-way 超标量</li>
+</ul>
+<h2 id="简介"><a class="markdownIt-Anchor" href="#简介"></a> 简介</h2>
+<p>本着先写个博客记录一下的心情，尽管书还没看完，决定先写个博客记录一下。</p>
+<p>整体的设计应当分为以下几个部分：</p>
+<ol>
+<li>Prediction &amp; Fetch (PF) 为分支预测与取指令部分，分支预测器包括全局历史预测和局部历史预测，再从iCache取指令</li>
+<li>Register Rename（R）为寄存器重命名阶段，将32个逻辑寄存器重命名到物理寄存器中</li>
+<li>Issue（I）为发射阶段，判断发射队列中合适的指令进行寄存器读取并传输到执行单元中</li>
+<li>Execute（E）为执行阶段，主要指加减法的计算，单独设置乘法器在此花多周期进行计算</li>
+<li>Memory Access（M）为访存阶段，对dCache进行读写</li>
+<li>Bypass（B）为将相应的结果数据返回到流水线中供高效计算的旁路网络</li>
+</ol>
+<p>先写这么多。具体的综述内容可能还需要慢慢写完了才能继续概括总结。</p>
+]]></content>
+      <categories>
+        <category>SSCPU</category>
+      </categories>
+      <tags>
+        <tag>Arch</tag>
+        <tag>SSCPU</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SSCPU-3</title>
+    <url>/2023/12/01/SSCPU-3/</url>
+    <content><![CDATA[]]></content>
+  </entry>
+  <entry>
+    <title>Superscalar CPU Design - 2 - iCache</title>
+    <url>/2023/12/01/SSCPU-2/</url>
+    <content><![CDATA[<p><em>该部分仅考虑iCache设计，因此不涉及（从CPU）写Cache的内容。</em></p>
+<p>由于需要为后续多 way 扩展考虑，这里全部假设设计的CPU是 4-way 的。</p>
+<p>对于 iCache ，不需要<strong>真正</strong>支持多端口访问，因为大多数情况下取出的多条指令是连续的，因此输入端我们只设置一个端口，用于输入当前需要访问的指令的初始地址。对于一个 4-way 的超标量处理器，可以采取一条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字，一次取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字的 iCache，这样在任意位置每次平均取得 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 条指令，考虑到由于指令中含有分支指令，实际上可能会将分支指令后的指令抛弃，这个数量应当差不多可以满足要求。</p>
+<p>取得指令后，iCache 会将指令送至一个“指令缓存”中，这是一个 FIFO，一方面接受 iCache 多取的指令来尽量保证处理器每周期都能有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 条指令供处理，另一方面会根据分支预测器的结果判断分支方向来将分支语句后取得的指令抛弃。</p>
+<p>iCache 采用组相连的方式，每条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字，每个组相连含 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个 CacheLine，总共含有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个组，即对于以字节为单位的内存地址，从后往前数， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> （字对齐）， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位指定 CacheLine 内的偏移， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位决定组内偏移，剩余的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位为 Tag 的大小，即 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个组， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个 CacheLine，每组 Tag  <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位总计 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn><mo>×</mo><mo stretchy="false">(</mo><mn>24</mn><mo>+</mo><mn>8</mn><mo>×</mo><mn>8</mn><mo>×</mo><mn>4</mn><mo stretchy="false">)</mo><mo>=</mo><mn>2240</mn></mrow><annotation encoding="application/x-tex">8\times (24+8\times 8\times 4)=2240</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">2</span><span class="mord">4</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">4</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">2</span><span class="mord">4</span><span class="mord">0</span></span></span></span> 字节。</p>
+]]></content>
+      <categories>
+        <category>SSCPU</category>
+      </categories>
+      <tags>
+        <tag>Arch</tag>
+        <tag>SSCPU</tag>
+      </tags>
+  </entry>
 </search>
