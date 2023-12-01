@@ -5027,9 +5027,16 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       </tags>
   </entry>
   <entry>
-    <title>SSCPU-3</title>
+    <title>Superscalar CPU Design - 3 - Branch Prediction</title>
     <url>/2023/12/01/SSCPU-3/</url>
     <content><![CDATA[]]></content>
+      <categories>
+        <category>SSCPU</category>
+      </categories>
+      <tags>
+        <tag>Arch</tag>
+        <tag>SSCPU</tag>
+      </tags>
   </entry>
   <entry>
     <title>Superscalar CPU Design - 2 - iCache</title>
