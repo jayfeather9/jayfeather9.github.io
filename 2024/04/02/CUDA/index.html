@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"jayfeather9.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="CUDA 编程的各种笔记">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CUDA 笔记">
+<meta property="og:url" content="http://jayfeather9.github.io/2024/04/02/CUDA/index.html">
+<meta property="og:site_name" content="Jayfeather9&#39;s Blog">
+<meta property="og:description" content="CUDA 编程的各种笔记">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic2.zhimg.com/80/v2-23d684f165319d30eb7fb4d0b669f055_1440w.webp">
+<meta property="og:image" content="https://pic3.zhimg.com/80/v2-64f88082c2f8072da3597e0029297b72_1440w.webp">
+<meta property="og:image" content="https://pic2.zhimg.com/80/v2-e51fe81b6f8808158b58e895cc4d3e09_1440w.webp">
+<meta property="og:image" content="https://images0.cnblogs.com/blog2015/657339/201505/302345505481188.png">
+<meta property="og:image" content="https://pic1.zhimg.com/80/v2-7cb74504a5c7b81130bc6ad4d562220c_1440w.webp">
+<meta property="og:image" content="https://pic3.zhimg.com/80/v2-bda838be655464250983e4b723c2f1be_1440w.webp">
+<meta property="article:published_time" content="2024-04-02T09:50:00.000Z">
+<meta property="article:modified_time" content="2024-04-02T12:15:49.025Z">
+<meta property="article:author" content="Jayfeather9">
+<meta property="article:tag" content="HPC">
+<meta property="article:tag" content="CUDA">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic2.zhimg.com/80/v2-23d684f165319d30eb7fb4d0b669f055_1440w.webp">
+
+<link rel="canonical" href="http://jayfeather9.github.io/2024/04/02/CUDA/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>CUDA 笔记 | Jayfeather9's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Jayfeather9's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://jayfeather9.github.io/2024/04/02/CUDA/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Jayfeather9">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Jayfeather9's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CUDA 笔记
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2024-04-02 17:50:00 / Modified: 20:15:49" itemprop="dateCreated datePublished" datetime="2024-04-02T17:50:00+08:00">2024-04-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HPC/" itemprop="url" rel="index"><span itemprop="name">HPC</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-users"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span class="firestore-visitors-count"></span>
+            </span>
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <div class="post-description">CUDA 编程的各种笔记</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="简介"><a class="markdownIt-Anchor" href="#简介"></a> 简介</h2>
+<p><strong>Compute Unified Device Architecture (CUDA)</strong> 是由 NVIDIA 开发的并行计算平台和编程模型。它使开发人员能够使用 CUDA-C 编写程序，利用 CUDA 架构的 NVIDIA GPU 加速应用程序的运行。简单来说，就是利用 GPU 的并行计算能力来加速计算。</p>
+<p>本文主要记录一些笔者在学习 CUDA 编程过程中的杂项记录。</p>
+<p>需要注意，对于 GPU 编程而言，一般通过 host 和 device 区分 CPU 和 GPU，即后文若有提到，则 host 指 CPU，device 指 GPU。</p>
+<h2 id="cuda-gpu-软件结构"><a class="markdownIt-Anchor" href="#cuda-gpu-软件结构"></a> CUDA GPU 软件结构</h2>
+<p>引用一张并不如何美观的图片来解释 CUDA 编程结构：由三部分组成，分别是 Grid、Block 和 Thread。中文翻译是网格、块和线程——不过作为指代 GPU 结构的名词，为保证不和其他概念如 OS 中的线程混淆，可能还是用英文表达更合适。</p>
+<p><img src="https://pic2.zhimg.com/80/v2-23d684f165319d30eb7fb4d0b669f055_1440w.webp" alt="CUDA GPU 软件结构" /></p>
+<p>调用任何的 CUDA 核函数（即运行在 GPU 上的函数）都需要指定要在“多少 Block，多少 Thread”上运行，调用格式如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">dim3 <span class="title">gridDim</span><span class="params">(<span class="number">2</span>, <span class="number">2</span>, <span class="number">1</span>)</span></span>; <span class="comment">// 一个 Grid 包含 2x2 个 Block</span></span><br><span class="line"><span class="function">dim3 <span class="title">blockDim</span><span class="params">(<span class="number">4</span>, <span class="number">4</span>, <span class="number">1</span>)</span></span>; <span class="comment">// 一个 Block 包含 4x4 个 Thread</span></span><br><span class="line">kernel&lt;&lt;&lt;gridDim, blockDim&gt;&gt;&gt;(args); <span class="comment">// 调用 kernel 函数</span></span><br></pre></td></tr></table></figure>
+<p>注意到这里传入了两个 <code>dim3</code> 类型的变量，分别指定了 Grid 和 Block 的大小。这里我们指定大小可以用一维、二维或三维的方式，比如 <code>dim3(2, 2, 1)</code> 和 <code>dim3(4, 4, 1)</code> 可以等价地写成 <code>dim3(2, 2)</code> 和 <code>dim3(4, 4)</code>。这里的 <code>&lt;&lt;&lt;&gt;&gt;&gt;</code> 语法是 CUDA 中的特有的调用核函数的语法，用来指定 Grid 和 Block 的大小。</p>
+<p>那么，什么是核函数呢？简单来说，就是运行在 GPU 上的函数。为了区分代码中哪些函数是运行在 CPU 上，哪些是运行在 GPU 上，CUDA 中使用关键字来修饰运行在 GPU 上的函数，包括 <code>__global__</code>、<code>__device__</code> 和 <code>__host__</code>。其中 <code>__host__</code> 就是运行在 CPU 上的函数（如果函数声明不额外添加关键字，也会被默认当成 <code>__host__</code> 函数），显然，能调用 <code>__host__</code> 函数的只有同类型的 <code>__host__</code> 函数。<code>__device__</code> 和 <code>__global__</code> 是运行在 GPU 上的函数，其中 <code>__device__</code> 函数只能被 GPU 上的两种函数调用，而 <code>__global__</code> 函数可以被 <code>__host__</code> 函数通过传递运行时参数的方式调用。这里的 <code>__global__</code> 函数就是我们通常所说的核函数。</p>
+<p>此外，对于 sm_50 以上的计算能力的 GPU，CUDA 支持 <code>__device__</code> 函数的递归（在此之前都是直接内联）。而 <code>__device__</code> 和 <code>__global__</code> 函数都可以继续通过传递运行时参数的方式调用 <code>__global__</code> 函数，实现某种多级并行。综合来说，如下图所示：</p>
+<p><img src="https://pic3.zhimg.com/80/v2-64f88082c2f8072da3597e0029297b72_1440w.webp" alt="CUDA 函数调用关系" /></p>
+<h2 id="cuda-gpu-硬件架构"><a class="markdownIt-Anchor" href="#cuda-gpu-硬件架构"></a> CUDA GPU 硬件架构</h2>
+<p>一个 GPU 由多个 SM（Streaming Multiprocessor）组成，每个 SM 包含多个 SP（Streaming Processor）。形象化解释的话，SM 是一个工人小组，SP 则是单个工人。具体的指令和任务都是一个 SP 一次执行一条，也可以将 SP 理解为一个丐版 CPU 核心。一个 SM 有一定数量的寄存器和 shared 内存，前者和 CPU 的寄存器相同，后者相当于仅供 SM 内部读写的高速内存（相对应的还有更慢的 global 内存，也是大家通常说的显存，其对所有 SM 都可见）。如下图为一个 SM 的基本组成：</p>
+<p><img src="https://pic2.zhimg.com/80/v2-e51fe81b6f8808158b58e895cc4d3e09_1440w.webp" alt="CUDA SM 架构" /></p>
+<p>一个 SP 可以执行一个 thread，而若干个（目前是 32 个，不排除以后 NVIDIA 会改） threads 组成一个 warp，由 SM 的 warp scheduler 负责调度。一个 SM 同时可以执行多个 warp，是调度和运行的基本单元（有点类似于进程）。</p>
+<p>对于一个 warp 中的 32 个 threads（我们目前认为他 32 个），它们的执行是 SIMT（Single Instruction Multiple Thread）的，即同一个指令同时作用于这 32 个 threads，但是每个 thread 的数据不同。对于一些控制流语句如 if，else 等，不同的 threads 如果需要进入不同的分支，那么 warp 只能够走其中一条分支，将剩余的 threads 暂时阻塞，这就叫 warp divergence，十分影响性能，如下图：</p>
+<p><img src="https://images0.cnblogs.com/blog2015/657339/201505/302345505481188.png" alt="CUDA warp divergence" /></p>
+<p>为了减少这种情况发生，提升性能，一种方法是保证同一个 warp 内的 threads 走同一个方向。比如一个分支决定条件是 <code>tid % 2 == 0</code>，那么可以改成 <code>(tid &gt;&gt; 5) &amp; 1 == 0</code>，这样就保证了同一个 warp 内的 threads 都走同一个分支。不过由于 NVIDIA 的工程师也很聪明，很多时候 nvcc 也会自动帮我们完成类似的优化。</p>
+<p>对于一个 warp 而言，其上下文包括三个部分：PC（指令计数器），寄存器和 shared 内存。其中 PC 含义和 CPU 中的 PC 含义相同。<strong>需要注意的是，对于 warp 而言，上下文切换是没有消耗的，因为所有的 warp 的寄存器和 shared 内存都同时存在于 SM 中，因此切换 warp 的上下文只需要改变 PC 即可，不需要保存和恢复寄存器和 shared 内存。</strong></p>
+<p>在一个 block 中有多个 warp，如果硬件资源满足要求，就会将 warp 送入 SM 中执行。由于 threads 的调度以 warp 为单位，因此它们不一定是同步的。如果需要对 threads 进行同步，可以使用 <code>__syncthreads()</code> 函数，它会阻塞当前 warp 中的 threads，直到所有 threads 都到达这个函数，然后再继续执行。需要注意的是，这个函数只能在同一个 block 中的 threads 之间同步，不同 block 之间的 threads 无法通过这个函数同步。</p>
+<h2 id="cuda-内存管理"><a class="markdownIt-Anchor" href="#cuda-内存管理"></a> CUDA 内存管理</h2>
+<p>在 CUDA 编程中，我们需要显式管理各个变量存储位置是主存还是显存。首先，声明在 <code>__host__</code> 函数中的变量只能存储在主存中。然后对于不添加关键字的全局变量，同样存储在主存中。如果想将全局变量存储在 GPU 上，需要加上 <code>__device__</code> 或 <code>__constant__</code> 关键字。两者均存储在 GPU 的高速内存中，但后者作为常量，可以被放在高速缓存中，提升 GPU 对其的读取效率。需要注意的是，<code>__constant__</code> 并不是真正的常量，它的值可以被 host 修改，只是对于 GPU 而言，它是只读的。对这两个关键字声明的全局变量，需要通过 <code>cudaMemcpyToSymbol()</code> 和 <code>cudaMemcpyFromSymbol()</code> 函数来在 host 和 device 之间传递数据。此外，CUDA 还提供了 <code>__shared__</code> 关键字，用来声明存储在 GPU 的共享内存中的变量，这个关键字只能在 <code>__global__</code> 或 <code>__device__</code> 函数中使用，用来在同一个 Block 中的 Thread 之间共享数据，速度快于前面两种内存，但容量很小。需要注意的是，对于在核函数中声明的，未标注 <code>__device__</code> 的变量，它们一般会被存储在寄存器中。</p>
+<p>同时，也可以通过 <code>cudaMalloc()</code> 和 <code>cudaFree()</code> 函数来在 host 和 device 之间传递数据，这两个函数分别用来在 device 上分配内存和释放内存，对于这种方式申请的显存，使用普通的指针记录其地址即可。此外，还有 <code>cudaMemcpy()</code> 函数用来在 host 和 device 之间传递数据，它的参数比较多，可以指定传递的数据大小、传递的方向等。这些函数的返回值均为 <code>cudaError_t</code> 类型，可以通过 <code>cudaGetErrorString()</code> 函数来获取错误信息，一般通过 <code>assert( cudaSuccess == err )</code> 来检查是否出错。这几个函数均为 host 函数，即只能在 <code>__host__</code> 函数中调用。对于在核函数中类似的申请需求，直接调用 <code>malloc()</code> 和 <code>free()</code> 即可，这两个函数会在 device 上分配内存，但是需要注意，这两个函数的返回值是 <code>void*</code> 类型，需要强制转换为对应的类型。</p>
+<blockquote>
+<p>对于 device 的内存传递，有的代码会采用将指针转 <code>float4</code> 类型的方式来传递。这个类型代表了 4 个 <code>float</code> 类型的数据放在一起，因此通过 <code>reintepret_cast&lt;float4*&gt;(ptr)</code> 来转换指针再进行数据传递的话，就可以通过<em>可能</em>更快的向量化指令来进行数据传递。</p>
+</blockquote>
+<h2 id="bank-conflict"><a class="markdownIt-Anchor" href="#bank-conflict"></a> Bank Conflict</h2>
+<p>首先，在 CUDA 中，shared 内存能够被一个 warp 中的所有线程访问。其中 shared 内存以 bank 的形式分层组织。具体如下图所示。每个 warp 有 32 个 threads，因此 shared 内存也被分为了 32 个 bank。一个 bank 一层的大小为 4Byte = 32bit。而实际的数据先连续的分成 32 * 4Byte 大小的层，每层再划分给 32 个 bank。因此如果每个 thread 每次读写 shared 内存能够恰好读取这 32 个 bank，那么将能够做到同时读取。</p>
+<p><img src="https://pic1.zhimg.com/80/v2-7cb74504a5c7b81130bc6ad4d562220c_1440w.webp" alt="CUDA shared 内存分层组织" /></p>
+<p>Bank confict 指的就是当多个 thread 同时读写同一个 bank 的情况。如下图左侧无 bank conflict，中间每两个 thread 读写同一个 bank 则有 bank conflict，右边虽然映射比较乱但是没有 bank conflict。</p>
+<p><img src="https://pic3.zhimg.com/80/v2-bda838be655464250983e4b723c2f1be_1440w.webp" alt="CUDA bank conflict" /></p>
+<p>实际实现中，对于 bank conflict 即多个 thread 读写同一个 bank 的情况，warp 会将这些操作串行化从而导致性能降低。具体来说，当多个 thread 同时读一个 bank 时，会变成顺序读取（新版本中变为一个 thread 读取然后 broadcast 到其余 thread）。而当多个 thread 同时写一个 bank 时，会随机一个 thread 成功。</p>
+<p>因此在进行核函数编写时，需要尽量保证对 shared 内存的访问是连续映射的，或保证各个 thread 访问的 shared 内存地址模 32 互相不同余。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/HPC/" rel="tag"># HPC</a>
+              <a href="/tags/CUDA/" rel="tag"># CUDA</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2023/12/01/SSCPU-3/" rel="prev" title="Superscalar CPU Design - 3 - Branch Prediction">
+      <i class="fa fa-chevron-left"></i> Superscalar CPU Design - 3 - Branch Prediction
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text"> 简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cuda-gpu-%E8%BD%AF%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text"> CUDA GPU 软件结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cuda-gpu-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text"> CUDA GPU 硬件架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cuda-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text"> CUDA 内存管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#bank-conflict"><span class="nav-number">5.</span> <span class="nav-text"> Bank Conflict</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Jayfeather9</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">29</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jayfeather9</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://mist.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+  <script src="https://www.gstatic.com/firebasejs/6.3.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.3.3/firebase-firestore.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey   : '',
+      projectId: ''
+    });
+
+    function getCount(doc, increaseCount) {
+      // IncreaseCount will be false when not in article page
+      return doc.get().then(d => {
+        var count = 0;
+        if (!d.exists) { // Has no data, initialize count
+          if (increaseCount) {
+            doc.set({
+              count: 1
+            });
+            count = 1;
+          }
+        } else { // Has data
+          count = d.data().count;
+          if (increaseCount) {
+            // If first view this article
+            doc.set({ // Increase count
+              count: count + 1
+            });
+            count++;
+          }
+        }
+
+        return count;
+      });
+    }
+
+    function appendCountTo(el) {
+      return count => {
+        el.innerText = count;
+      }
+    }
+  </script>
+  <script>
+    (function() {
+      var db = firebase.firestore();
+      var articles = db.collection('articles');
+
+      if (CONFIG.page.isPost) { // Is article page
+        var title = document.querySelector('.post-title').innerText.trim();
+        var doc = articles.doc(title);
+        var increaseCount = CONFIG.hostname === location.hostname;
+        if (localStorage.getItem(title)) {
+          increaseCount = false;
+        } else {
+          // Mark as visited
+          localStorage.setItem(title, true);
+        }
+        getCount(doc, increaseCount).then(appendCountTo(document.querySelector('.firestore-visitors-count')));
+      } else if (CONFIG.page.isHome) { // Is index page
+        var promises = [...document.querySelectorAll('.post-title')].map(element => {
+          var title = element.innerText.trim();
+          var doc = articles.doc(title);
+          return getCount(doc);
+        });
+        Promise.all(promises).then(counts => {
+          var metas = document.querySelectorAll('.firestore-visitors-count');
+          counts.forEach((val, idx) => {
+            appendCountTo(metas[idx])(val);
+          });
+        });
+      }
+    })();
+  </script>
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'forest',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+</body>
+</html>

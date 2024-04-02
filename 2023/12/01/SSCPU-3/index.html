@@ -27,12 +27,14 @@
 <meta property="og:site_name" content="Jayfeather9&#39;s Blog">
 <meta property="og:description" content="超标量处理器设计第三篇 - 分支预测器">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic4.zhimg.com/80/v2-25f078996c4c4dec8b879a074437ab63_1440w.webp">
 <meta property="article:published_time" content="2023-12-01T06:23:32.000Z">
-<meta property="article:modified_time" content="2023-12-01T06:30:25.679Z">
+<meta property="article:modified_time" content="2023-12-04T02:21:37.320Z">
 <meta property="article:author" content="Jayfeather9">
 <meta property="article:tag" content="Arch">
 <meta property="article:tag" content="SSCPU">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic4.zhimg.com/80/v2-25f078996c4c4dec8b879a074437ab63_1440w.webp">
 
 <link rel="canonical" href="http://jayfeather9.github.io/2023/12/01/SSCPU-3/">
 
@@ -216,10 +218,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">Posted on</span>
-              
 
-              <time title="Created: 2023-12-01 14:23:32 / Modified: 14:30:25" itemprop="dateCreated datePublished" datetime="2023-12-01T14:23:32+08:00">2023-12-01</time>
+              <time title="Created: 2023-12-01 14:23:32" itemprop="dateCreated datePublished" datetime="2023-12-01T14:23:32+08:00">2023-12-01</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2023-12-04 10:21:37" itemprop="dateModified" datetime="2023-12-04T10:21:37+08:00">2023-12-04</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -256,7 +264,24 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        
+        <h2 id="概述"><a class="markdownIt-Anchor" href="#概述"></a> 概述</h2>
+<p>分支预测器的输入为当前指令的 PC 值即指令地址，根据该地址，一方面分支预测器本身预测该指令是否跳转，另一方面 BTB (Branch Target Buffer) 中保存了各个 PC 值对应的“上次跳转地址”，如果 BTB hit 且预测跳转，则跳转，否则不跳转。这样处理不需要实际根据该指令的值来判断该指令是否是分支指令，因为如果不是分支指令，一定不会写 BTB，访问 BTB 时一定会 miss，就不会发生跳转。同时这样也不需要获取 iCache 结果，可以和 iCache 取指令的过程并行进行。</p>
+<h2 id="分支预测器的实现"><a class="markdownIt-Anchor" href="#分支预测器的实现"></a> 分支预测器的实现</h2>
+<p>在分支预测器的表示中，跳转即为预测结果被接受即 Taken (T)，不跳转则为不被接受 Not Taken (N)。</p>
+<h3 id="2-bit-last-time-predict"><a class="markdownIt-Anchor" href="#2-bit-last-time-predict"></a> 2-Bit Last Time Predict</h3>
+<p>这种 2BC 预测器可以理解为一个四状态的状态机，强T，弱T，弱N，强N。前两个预测结果为 T，后两个结果 N，每次实际结果为 T 时向左转移，为 N 时向右转移。一般以弱T为初始值。</p>
+<p>一般来说，不同的分支指令应当用不同的预测器来存储结果，因此如果对每个指令保存一个 2BC，构成的一张“表”就是 Pattern History Table (PHT)。</p>
+<h3 id="全局历史预测"><a class="markdownIt-Anchor" href="#全局历史预测"></a> 全局历史预测</h3>
+<p>设置一个 x 位寄存器，记录所有指令中最近的 x 次跳转指令的实际结果，并根据这个寄存器的值和当前 PC 值拼接（或 xor，或其他计算）的结果作为地址去在一个 PHT 中去寻找结果（以及更新结果）</p>
+<h3 id="局部历史预测"><a class="markdownIt-Anchor" href="#局部历史预测"></a> 局部历史预测</h3>
+<p>设置一张大表格，对于每个 PC 都存储一个 x 位的局部历史，再根据局部历史去寻址一个局部历史对应的 PHT。</p>
+<h3 id="混合预测"><a class="markdownIt-Anchor" href="#混合预测"></a> 混合预测</h3>
+<p>同时使用全局预测和局部预测，再设置一个利用全局历史寄存器寻址的 PHT 来预测要选择局部的还是全局的预测结果。</p>
+<p>（其实可能没必要，要实现同时结合局部与全局信息的话，按局部历史结果、全局历史结果和 PC 值共同寻址 PHT 即可。</p>
+<h3 id="tage"><a class="markdownIt-Anchor" href="#tage"></a> TAGE</h3>
+<p>相对复杂。</p>
+<p><img src="https://pic4.zhimg.com/80/v2-25f078996c4c4dec8b879a074437ab63_1440w.webp" alt="TAGE" /></p>
+
     </div>
 
     
@@ -278,7 +303,10 @@
     <a href="/2023/12/01/SSCPU-2/" rel="prev" title="Superscalar CPU Design - 2 - iCache">
       <i class="fa fa-chevron-left"></i> Superscalar CPU Design - 2 - iCache
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2024/04/02/CUDA/" rel="next" title="CUDA 笔记">
+      CUDA 笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -337,6 +365,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text"> 概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E6%94%AF%E9%A2%84%E6%B5%8B%E5%99%A8%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text"> 分支预测器的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-bit-last-time-predict"><span class="nav-number">2.1.</span> <span class="nav-text"> 2-Bit Last Time Predict</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A8%E5%B1%80%E5%8E%86%E5%8F%B2%E9%A2%84%E6%B5%8B"><span class="nav-number">2.2.</span> <span class="nav-text"> 全局历史预测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%80%E9%83%A8%E5%8E%86%E5%8F%B2%E9%A2%84%E6%B5%8B"><span class="nav-number">2.3.</span> <span class="nav-text"> 局部历史预测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B7%E5%90%88%E9%A2%84%E6%B5%8B"><span class="nav-number">2.4.</span> <span class="nav-text"> 混合预测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#tage"><span class="nav-number">2.5.</span> <span class="nav-text"> TAGE</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -350,20 +379,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">28</span>
+          <span class="site-state-item-count">29</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-count">9</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-count">16</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -390,7 +419,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2023</span>
+  <span itemprop="copyrightYear">2024</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>

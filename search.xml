@@ -1,44 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>计算机组成 P3 CPU 设计文档</title>
-    <url>/2022/10/31/CO-P3-CPU/</url>
+    <title>计算机组成 P4 CPU 设计文档</title>
+    <url>/2022/11/06/CO-P4-CPU/</url>
     <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="1-通过fsm理解cpu"><a class="markdownIt-Anchor" href="#1-通过fsm理解cpu"></a> 1 通过FSM理解CPU</h3>
-<p>单周期CPU所用到的模块中，发挥状态存储功能的包括IFU（PC寄存器），GRF（通过寄存器组存储状态），DM（使用RAM存储状态）；发挥状态转移功能的包括IFU（实现PC地址不断自增），Controller（实现将指令转移为控制信号），ALU（计算得到目标结果）。</p>
-<h3 id="2-存储元件合理性"><a class="markdownIt-Anchor" href="#2-存储元件合理性"></a> 2 存储元件合理性</h3>
-<ul>
-<li>IM使用ROM：IM一次只需要读取一条指令，且IM中存储的指令不可被修改，符合ROM大容量存储且只读的特点，同时现实中的计算机需要保证在关闭电源后也能保存指令，因此不能使用断电会丢失数据的RAM。</li>
-<li>DM使用RAM：DM一次只需要读取一个地址对应的数据且需要支持可读写，符合RAM大容量存储且可反复读写的特点，同时现实中的寄存器单位存储大小的价格远高于RAM，对于没有那么刚需读写速度的DM而言使用RAM成本最为合适。</li>
-<li>GRF使用寄存器：基本上CPU执行每条指令都涉及到对于GRF的读写，且常常需要一次读取两个不同寄存器的值，Logisim中的RAM和ROM都不支持同时读取两个地址值加写入数据（ROM甚至完全不支持写入），因此需要使用分开来的寄存器组实现同时读取数据和写入数据。且现实中的寄存器读写速度远高于RAM和ROM，符合CPU需要频繁读取和写入GRF的特点。</li>
-<li>为何不使用Logisim提供的其他触发器：其他触发器是组成寄存器的基础电路，使用其他触发器再行包装的话与直接使用寄存器元件效果并无不同，却更容易在包装过程中造成问题，为了减少开发难度选择不使用这些元件。</li>
-</ul>
-<h3 id="3-其他模块"><a class="markdownIt-Anchor" href="#3-其他模块"></a> 3 其他模块</h3>
-<p>无其他模块</p>
-<h3 id="4-nop指令"><a class="markdownIt-Anchor" href="#4-nop指令"></a> 4 nop指令</h3>
-<p>对于nop指令，由于Controller采用的电路连接方式，op和func全0时AND_logic输出也是全0，对应OR_logic输出也是全0，所以不会执行指令跳转，不会执行任何GRF或DM写入，因此此时不会执行任何改变当前状态的操作，等价于nop空指令需要达成的效果。</p>
-<h3 id="5-mars导出指令"><a class="markdownIt-Anchor" href="#5-mars导出指令"></a> 5 MARS导出指令</h3>
-<p>在课程MIPS要求的设置下，Data从0x00000000开始，Text即代码部分从0x00003000开始，则可以直接通过单独区分J型指令并将其对应指令地址与0x00003000相减即可，增加一个减法器即可解决问题，不需要手工修改最终的机器码。</p>
-<p>但在本次P3题目中，由于Compact设置为Data从0x00000000开始，且唯一的跳转指令beq并不涉及指令地址的绝对位置，只涉及相对位置，因此并不需要进行相关修改。</p>
-<h3 id="6-pre的mips测试样例强度"><a class="markdownIt-Anchor" href="#6-pre的mips测试样例强度"></a> 6 Pre的MIPS测试样例强度</h3>
-<h4 id="各个指令的覆盖率分析"><a class="markdownIt-Anchor" href="#各个指令的覆盖率分析"></a> 各个指令的覆盖率分析</h4>
-<ul>
-<li>ori 立即数范围可以更扩大，测试边界情况（如0xffff）时的情况</li>
-<li>lui 应增加被改变寄存器本来已存有值的情况，比如lui误实现为“将立即数置于高位但保留原数低16位”的情况就不能检测到</li>
-<li>add 没有检测到寄存器自增自减的情况</li>
-<li>sw 没有测试同寄存器同时作为地址存储和被写入寄存器的情况</li>
-<li>lw 同上，且测试范围不够，可以考虑测试更多边界条件。</li>
-<li>beq 没有考察立即数是负数的情况（向前跳跃）</li>
-</ul>
-<h2 id="测试方案"><a class="markdownIt-Anchor" href="#测试方案"></a> 测试方案</h2>
-<ol>
-<li>采用github上的hex2mips工具将所给的P3_Testcode.txt转回汇编语言后，逐行运行对比观察模块行为，处理不同的位置并定位bug。</li>
-<li>采用自己书写的测试MIPS汇编代码，通过自动化测试工具（使用python在已有MIPS模拟器的基础上进行更改、修复与扩展后输出对应信息到logisim自动测试模块内进行评测并定位问题，进而处理bug，详见自动化测试文件提交。</li>
-</ol>
+<h3 id="1-dm输入示例"><a class="markdownIt-Anchor" href="#1-dm输入示例"></a> 1 DM输入示例</h3>
+<p>addr信号从ALU的输出结果取[11:2]得到，使用到DM的指令有lw和sw，都需要将对应寄存器值和立即数相加，因此这里DM的地址应为对应的ALU输出的相加结果。</p>
+<p>位数是[11:2]而不是[9:0]因为DM是按字对齐，（目前）仅支持按字读取和写入，且DM内部存储数据是以类似这样的格式存储：</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">reg</span> [<span class="number">31</span>:<span class="number">0</span>] im_reg [<span class="number">0</span>:<span class="number">1023</span>]</span><br></pre></td></tr></table></figure>
+<p>是按照32位数的数组进行存储的，因此如果输入时直接取[11:2]位（代表截去最低两位）可以直接取im_reg[addr]得到所需数据，不采用[9:0]的描述也是为了不混淆，明确展示这里取的是截取了末两位后取10位的ALU结果而不是直接取低10位的结果。</p>
+<h3 id="2-两种不同控制器译码方式"><a class="markdownIt-Anchor" href="#2-两种不同控制器译码方式"></a> 2 两种不同控制器译码方式</h3>
+<p>在Verilog编程中，记录<strong>指令对应的控制信号如何取值</strong>对应使用always @(*)模块，对于每个指令为控制信号赋值，以lui和jal指令为例，给出如下组合逻辑代码示例：（将输出各值定义为寄存器，此处为简便省略了default分支）</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">always</span> @(*) <span class="keyword">begin</span></span><br><span class="line">	<span class="keyword">case</span>(OPCode)			</span><br><span class="line">		<span class="number">6&#x27;b00_1111</span>: <span class="keyword">begin</span></span><br><span class="line">    	<span class="comment">// lui</span></span><br><span class="line">    	Mem2Reg &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      MemWrite &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      PCSrc &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      ALUCtrl &lt;= <span class="number">4&#x27;b0100</span>; <span class="comment">// lui</span></span><br><span class="line">      ALUSrc &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">      RegDest &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      RegWrite &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">   	<span class="number">6&#x27;b00_0011</span>: <span class="keyword">begin</span></span><br><span class="line">    	<span class="comment">// jal</span></span><br><span class="line">      Mem2Reg &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      MemWrite &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      PCSrc &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      ALUCtrl &lt;= <span class="number">4&#x27;b0000</span>;</span><br><span class="line">      ALUSrc &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      RegDest &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      RegWrite &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="comment">// there should be a &quot;default&quot;, but too long so we don&#x27;t write it here</span></span><br><span class="line">  <span class="keyword">endcase</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+<p>而对于记录<strong>控制信号每种取值所对应的指令</strong>，对应使用assign模块直接判断指令是否是某个值，以jal和lw为例，给出如下组合逻辑代码：（省略了部分output数据）</p>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">wire</span> isJal, isLw;</span><br><span class="line"><span class="keyword">assign</span> isJal = (op == <span class="number">6&#x27;b00_0011</span>);</span><br><span class="line"><span class="keyword">assign</span> isLw = (op == <span class="number">6&#x27;b10_0011</span>);</span><br><span class="line"><span class="keyword">assign</span> Mem2Reg[<span class="number">0</span>] = isLw;</span><br><span class="line"><span class="keyword">assign</span> Mem2Reg[<span class="number">1</span>] = isJal;</span><br><span class="line"><span class="keyword">assign</span> RegWrite = isLw || isJal;</span><br><span class="line"><span class="comment">// there are more output wires but too long so we don&#x27;t write it here</span></span><br></pre></td></tr></table></figure>
+<p>可以看到，第一种形式按照输入的指令类型进行区分，第二种形式根据输出的端口类型进行区分。第二种不需要额外增加reg变量且代码相对更加简便，对于许多种指令只需要每个控制码输出（的每个位）写一行，对所有该值取1的指令或一遍即可。但是第二种写法缺乏可读性，不能一目了然地得到每个指令对应的控制码，增加新指令时也容易写错，而第一种按照不同的指令区分，可读性较高。因此这里选择了第一种写法。</p>
+<h3 id="3-对比同步异步复位"><a class="markdownIt-Anchor" href="#3-对比同步异步复位"></a> 3 对比同步异步复位</h3>
+<p>同步复位中以clk上升沿为准，如果clk上升沿时有reset再复位，因此<strong>clk信号比reset信号优先</strong>。</p>
+<p>异步复位中只要reset为真就进行复位，不考虑clk的值，因此<strong>reset信号比clk信号优先</strong>。</p>
+<h3 id="4-解释addi-addiu以及add-addu的等价性"><a class="markdownIt-Anchor" href="#4-解释addi-addiu以及add-addu的等价性"></a> 4 解释addi addiu以及add addu的等价性</h3>
+<p>在<em>MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set</em>中描述指令行为的部分，Add指令的行为如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">temp &lt;- &#123;GPR[rs][31], GPR[rs][31:0]&#125; + &#123;GPR[rt][31], GPR[rt][31:0]&#125;</span><br><span class="line">if temp[32] != temp[31] then</span><br><span class="line">	SignalException(IntegerOverflow)</span><br><span class="line">else</span><br><span class="line">	GPR[rd] &lt;- temp</span><br><span class="line">endif</span><br></pre></td></tr></table></figure>
+<p>而Addu指令行为如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">temp &lt;- GPR[rs] + GPR[rt]</span><br><span class="line">GPR[rd] &lt;- temp</span><br></pre></td></tr></table></figure>
+<p>（Addi和Addiu指令大同小异，只是将对应的第二参寄存器值替换为符号扩展到33位（addi）或32位（addiu）的立即数而已，这里不额外附上对应伪代码）</p>
+<p>可以看到，“有符号”加法Add在计算中将两个加数符号扩展到33位数，加和之后判断结果数第33位和第32位是否相等，不等的话报错“整型溢出”。逻辑很好理解——如果扩展到33位后结果数的符号位（第33位）和最高位（第32位）不等，代表使用32位数无法正确表达结果的正负性，此时就发生了结果溢出。如果忽略溢出，也就是在32位数可表达范围内规定最大值+1得到最小值，最小值-1得到最大值，则显然不需要上述处理。同理对于addi和addiu也是如此。</p>
+<h2 id="测试方法"><a class="markdownIt-Anchor" href="#测试方法"></a> 测试方法</h2>
+<p>采用了讨论区中石睿知同学分享的自动生成输出的魔改MARS，并且使用了如下的自动生成测试汇编代码的python程序生成汇编代码，通过将运行结果比对来进行调试。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> randint <span class="keyword">as</span> rd</span><br><span class="line"></span><br><span class="line">reg_calci = [<span class="string">&quot;ori&quot;</span>]</span><br><span class="line">reg_calc = [<span class="string">&quot;add&quot;</span>, <span class="string">&quot;sub&quot;</span>]</span><br><span class="line">branch = [<span class="string">&quot;beq&quot;</span>]</span><br><span class="line"><span class="comment"># load_memory = [&quot;lw&quot;]</span></span><br><span class="line"><span class="comment"># write_memory = [&quot;sw&quot;]</span></span><br><span class="line">jump = [<span class="string">&quot;jal&quot;</span>]</span><br><span class="line">jump_reg = [<span class="string">&quot;jr&quot;</span>]</span><br><span class="line">load_high = [<span class="string">&quot;lui&quot;</span>]</span><br><span class="line">space = [<span class="string">&quot;nop&quot;</span>]</span><br><span class="line"></span><br><span class="line">IMM_HIGH = <span class="number">100</span></span><br><span class="line">IMM_LOW = <span class="number">1</span></span><br><span class="line">DATA_MAX = <span class="number">10</span></span><br><span class="line">auto_label_cnt = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_ran</span>(<span class="params">arr</span>):</span><br><span class="line">    <span class="keyword">return</span> arr[rd(<span class="number">0</span>, <span class="built_in">len</span>(arr)-<span class="number">1</span>)]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_ran_reg</span>():</span><br><span class="line">    <span class="keyword">return</span> rd(<span class="number">1</span>, <span class="number">31</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_calci</span>(<span class="params">pos = -<span class="number">1</span>, rt = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">                imm = rd(<span class="params">IMM_LOW, IMM_HIGH</span>)</span>):</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(reg_calci)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, %d&quot;</span> % (reg_calci[pos], rt, rs, imm)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_calc</span>(<span class="params">pos = -<span class="number">1</span>, rd = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">            rt = get_ran_reg(<span class="params"></span>)</span>):</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(reg_calc)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, $%d&quot;</span> % (reg_calc[pos], rd, rs, rt)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_branch</span>(<span class="params">pos = -<span class="number">1</span>, rt = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">                label = <span class="string">&quot;&quot;</span>, neg = <span class="literal">False</span></span>):</span><br><span class="line">    <span class="keyword">global</span> auto_label_cnt</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(branch)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span> <span class="keyword">and</span> neg:</span><br><span class="line">        auto_label_cnt += <span class="number">3</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;jal auto_label_%d\nauto_label_%d:\n%s\njal auto_label_%d\n&quot;</span> \</span><br><span class="line">                <span class="string">&quot;auto_label_%d\n%s $%d, $%d, auto_label_%d\nauto_label_%d:&quot;</span> % \</span><br><span class="line">                (auto_label_cnt-<span class="number">2</span>, auto_label_cnt-<span class="number">1</span>, put_calci(), auto_label_cnt, </span><br><span class="line">                auto_label_cnt-<span class="number">2</span>, branch[pos], rt, rs, auto_label_cnt-<span class="number">1</span>, auto_label_cnt)</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        auto_label_cnt += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, auto_label_%d\n%s\nauto_label_%d:\n%s&quot;</span> % \</span><br><span class="line">                (branch[pos], rt, rs, auto_label_cnt, put_calci(), </span><br><span class="line">                auto_label_cnt, put_calci())</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, %s&quot;</span> % (reg_calci[pos], rt, rs, label)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_lw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;lw $%d, %s($%d)&quot;</span> % (rt, label, base)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_sw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;sw $%d, %s($%d)&quot;</span> % (rt, label, base)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_lsw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s\n%s&quot;</span> % (put_lw(base=base, rt=rt, label=label),</span><br><span class="line">                       put_sw(base=base, rt=rt, label=label))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">prepare_data</span>():</span><br><span class="line">    s = <span class="string">&quot;.data\n&quot;</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, DATA_MAX+<span class="number">1</span>):</span><br><span class="line">        s += <span class="string">&quot;data_label%d: .space 4\n&quot;</span> % i</span><br><span class="line">    s += <span class="string">&quot;\n.text\n&quot;</span></span><br><span class="line">    <span class="keyword">return</span> s</span><br></pre></td></tr></table></figure>
 <h2 id="指令集综述"><a class="markdownIt-Anchor" href="#指令集综述"></a> 指令集综述</h2>
 <h3 id="简要说明"><a class="markdownIt-Anchor" href="#简要说明"></a> 简要说明</h3>
 <p>包含指令集如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub ori lw sw beq lui nop</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub ori lw sw beq lui jal jr nop</span><br></pre></td></tr></table></figure>
 <h3 id="r-i-j-型指令说明"><a class="markdownIt-Anchor" href="#r-i-j-型指令说明"></a> R I J 型指令说明</h3>
 <h4 id="r型"><a class="markdownIt-Anchor" href="#r型"></a> R型</h4>
 <p>包括</p>
@@ -369,49 +362,109 @@
 </tr>
 </tbody>
 </table>
+<h3 id="跳转并链接-jal"><a class="markdownIt-Anchor" href="#跳转并链接-jal"></a> 跳转并链接 jal</h3>
+<p>将当前的PC+4存储在GPR[31]（$ra）中，按照给定的地址进行跳转。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">PC &lt;- &#123;PC[31:28], instr_index, &#123;2&#123;0&#125;&#125;&#125;</span><br><span class="line">GPR[31]($ra) &lt;- PC + 4</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~0 (26)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">instr_index</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">000011</td>
+<td style="text-align:center">目标跳转位置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="跳转至寄存器-jr"><a class="markdownIt-Anchor" href="#跳转至寄存器-jr"></a> 跳转至寄存器 jr</h3>
+<p>跳转到目标寄存器存储的地址指定的指令处</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">PC &lt;- GPR[rs]</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16 (5)</th>
+<th style="text-align:center">15~11 (5)</th>
+<th style="text-align:center">10~6 (5)</th>
+<th style="text-align:center">5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">func</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">000000</td>
+<td style="text-align:center">目标寄存器地址</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">001000</td>
+</tr>
+</tbody>
+</table>
 <h3 id="空指令-nop"><a class="markdownIt-Anchor" href="#空指令-nop"></a> 空指令 nop</h3>
 <p>机器码为0x00000000，不进行任何有效行为。</p>
 <h2 id="ifu-取指令单元"><a class="markdownIt-Anchor" href="#ifu-取指令单元"></a> IFU 取指令单元</h2>
 <h3 id="功能要求"><a class="markdownIt-Anchor" href="#功能要求"></a> 功能要求</h3>
 <ul>
 <li>内部包括 PC（程序计数器）、IM（指令存储器）及相关逻辑。</li>
-<li>PC 用寄存器实现，应具有<strong>异步复位</strong>功能，复位值为起始地址。</li>
-<li><strong>起始地址：0x00000000。</strong></li>
-<li>IM 用 ROM 实现，容量为 32bit × 32字。</li>
-<li>IM 实际地址宽度仅为 5 位，需要使用恰当的方法将 PC 中储存的地址同 IM 联系起来。</li>
+<li>PC <strong>同步复位</strong>，复位值为起始地址。</li>
+<li><strong>起始地址：0x00003000。</strong></li>
+<li>IM 容量为 32bit × 4096字（按字取的地址宽度12位）。</li>
 </ul>
 <h3 id="输入端口"><a class="markdownIt-Anchor" href="#输入端口"></a> 输入端口</h3>
 <ul>
 <li>clk 时钟信号</li>
-<li>Reset 异步复位信号</li>
-<li>ALUZero 代表Branch指令是否满足要求</li>
-<li>PCSrc [1:0] 指示当前的指令类型，00代表指令不影响跳转，01代表Branch指令，10代表J型指令（跳转到标记），11代表jr类指令（跳转到寄存器地址）</li>
-<li>PCBranch [7:0] Branch后的新指令地址</li>
-<li>PCJAL [31:0] 连接RD1，对应jal取出的寄存器内存储的值。</li>
+<li>Reset 同步复位信号</li>
+<li>PCSrc [1:0] 决定下条PC指令使用何处输入</li>
+<li>ALUZero 对应ALU的Zero输出，代表是否允许branch，1代表允许</li>
+<li>PCImm [15:0] 符号扩展后的立即数（对应beq给定的立即数）</li>
+<li>PCInstrIndex [25:0] J型指令的立即数值（对应jal给定的立即数）</li>
+<li>PCJumpReg [31:0] 来自寄存器的跳转地址（对应jr指令对应地址读取到的值）</li>
 </ul>
 <h3 id="输出端口"><a class="markdownIt-Anchor" href="#输出端口"></a> 输出端口</h3>
 <ul>
 <li>Inst [31:0] 取得的指令</li>
-<li>PCNxt [7:0] 下一条要执行的指令地址</li>
+<li>PCNxt [31:0] 对应PC+4，用于jal</li>
 </ul>
 <h3 id="行为逻辑"><a class="markdownIt-Anchor" href="#行为逻辑"></a> 行为逻辑</h3>
 <ul>
-<li>任何时刻，输出当前PC寄存器对应ROM地址中的指令</li>
-<li>每个clk上沿将当前PC寄存器存储的地址+4并输出到PCNxt，PCSrc为00时将该值存储到PC寄存器中</li>
-<li>每个clk上沿PCSrc为01时，判断ALUZero是否为真，为真则将PCBranch存入PC寄存器中，为假将PC+4存入PC寄存器中。</li>
-<li>每个clk上沿PCSrc为10或11时，分别对应J型和jr类指令，按照相应方式处理。</li>
+<li>支持同步复位</li>
+<li>任何时刻，输出当前PC寄存器对应地址中的指令</li>
+<li>每个clk上沿更新PC的值：</li>
 </ul>
+<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b00</span> || (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">0</span>)) <span class="keyword">begin</span> <span class="comment">// 无b/j指令或b指令无效，直接PC+=4</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span>;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">1</span>) <span class="keyword">begin</span> <span class="comment">// b类指令生效</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span> + &#123;&#123;<span class="number">14</span>&#123;PCImm[<span class="number">15</span>]&#125;&#125;, PCImm, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b10</span>) <span class="keyword">begin</span> <span class="comment">// jal</span></span><br><span class="line">  PC &lt;= &#123;PC[<span class="number">31</span>:<span class="number">28</span>], PCInstrIndex, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">begin</span> <span class="comment">// jr</span></span><br><span class="line">  PC &lt;= PCJumpReg;</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
 <h2 id="alu-算术逻辑单元"><a class="markdownIt-Anchor" href="#alu-算术逻辑单元"></a> ALU 算术逻辑单元</h2>
 <h3 id="功能要求-2"><a class="markdownIt-Anchor" href="#功能要求-2"></a> 功能要求</h3>
 <ul>
-<li>提供 32 位加、减、或运算及大小比较功能。</li>
+<li>提供 32 位加、减、或运算及大小比较等功能。</li>
 <li>加减法按无符号处理（不考虑溢出）。</li>
 </ul>
 <h3 id="输入端口-2"><a class="markdownIt-Anchor" href="#输入端口-2"></a> 输入端口</h3>
 <ul>
 <li>SrcA [31:0] 第一个参数输入</li>
 <li>SrcB [31:0] 第二个参数输入</li>
-<li>ALUCtrl [2:0] ALU操作类型控制码</li>
+<li>ALUCtrl [3:0] ALU操作类型控制码</li>
 </ul>
 <h3 id="输出端口-2"><a class="markdownIt-Anchor" href="#输出端口-2"></a> 输出端口</h3>
 <ul>
@@ -420,23 +473,23 @@
 </ul>
 <h3 id="控制信号说明"><a class="markdownIt-Anchor" href="#控制信号说明"></a> 控制信号说明</h3>
 <ul>
-<li>或运算 000</li>
-<li>与运算 001</li>
-<li>加法运算（无符号无溢出） 010</li>
-<li>减法运算（无符号无溢出） 011</li>
-<li>立即数加载至高位 100</li>
-<li>或立即数（将SrcB取低16位进行0扩展后和SrcA取或） 101</li>
+<li>或运算 0000</li>
+<li>与运算 0001</li>
+<li>加法运算（无符号无溢出） 0010</li>
+<li>减法运算（无符号无溢出） 0011</li>
+<li>立即数加载至高位 0100</li>
+<li>或立即数（将SrcB取低16位进行0扩展后和SrcA取或） 0101</li>
 </ul>
 <h2 id="grf-通用寄存器组"><a class="markdownIt-Anchor" href="#grf-通用寄存器组"></a> GRF 通用寄存器组</h2>
 <h3 id="功能要求-3"><a class="markdownIt-Anchor" href="#功能要求-3"></a> 功能要求</h3>
 <ul>
-<li>用具有写使能的寄存器实现，寄存器总数为 32 个，应具有<strong>异步复位</strong>功能。</li>
+<li>用具有写使能的寄存器实现，寄存器总数为 32 个，应具有<strong>同步复位</strong>功能。</li>
 <li><strong>0 号寄存器</strong>的值始终保持为 0。其他寄存器<strong>初始值（复位后）均为 0</strong>，无需专门设置。</li>
 </ul>
 <h3 id="输入端口-3"><a class="markdownIt-Anchor" href="#输入端口-3"></a> 输入端口</h3>
 <ul>
 <li>clk 时钟信号</li>
-<li>Reset 异步复位信号</li>
+<li>Reset同步复位信号</li>
 <li>WE 写使能信号</li>
 <li>A1 [4:0] 第一读取地址</li>
 <li>A2 [4:0] 第二读取地址</li>
@@ -451,23 +504,22 @@
 <h3 id="功能说明"><a class="markdownIt-Anchor" href="#功能说明"></a> 功能说明</h3>
 <ul>
 <li>任何时刻，RD1和RD2都输出A1和A2对应地址的寄存器中的数据</li>
-<li>Reset异步复位，将所有寄存器复位为0</li>
+<li>Reset同步复位，将所有寄存器复位为0</li>
 <li>0号寄存器永远保持为0</li>
 <li>当WE为真时，将WD的数据在clk上沿写入A3对应地址的寄存器</li>
 </ul>
 <h2 id="dm-数据存储器内存"><a class="markdownIt-Anchor" href="#dm-数据存储器内存"></a> DM 数据存储器（内存）</h2>
 <h3 id="功能要求-4"><a class="markdownIt-Anchor" href="#功能要求-4"></a> 功能要求</h3>
 <ul>
-<li>使用 RAM 实现，容量为 32bit × 32字，应具有<strong>异步复位</strong>功能，复位值为 0x00000000。</li>
+<li>使用 RAM 实现，容量为 32bit × 3072字，应具有<strong>同步复位</strong>功能，复位值为 0x00000000。</li>
 <li><strong>起始地址：0x00000000</strong>。</li>
-<li>RAM 应使用双端口模式，即设置 RAM 的 <strong>Data Interface</strong> 属性为 <strong>Separate load and store ports</strong>。</li>
 </ul>
 <h3 id="输入端口-4"><a class="markdownIt-Anchor" href="#输入端口-4"></a> 输入端口</h3>
 <ul>
 <li>clk 时钟信号</li>
-<li>Reset 异步复位信号</li>
+<li>Reset 同步复位信号</li>
 <li>WE 写使能信号</li>
-<li>Addr [4:0] 写入/读取地址</li>
+<li>Addr [31:0] 写入/读取地址</li>
 <li>WD [31:0] 写入数据</li>
 </ul>
 <h3 id="输出端口-4"><a class="markdownIt-Anchor" href="#输出端口-4"></a> 输出端口</h3>
@@ -476,54 +528,91 @@
 </ul>
 <h3 id="功能说明-2"><a class="markdownIt-Anchor" href="#功能说明-2"></a> 功能说明</h3>
 <ul>
-<li>任何时刻，在RD输出AddrR对应内存地址的内存数据</li>
-<li>当WE为真时，将WD的数据在clk上沿写入AddrW对应内存地址</li>
+<li>任何时刻，在RD输出Addr对应内存地址的内存数据</li>
+<li>当WE为真时，将WD的数据在clk上沿写入Addr对应内存地址</li>
 </ul>
-<h2 id="controller-控制器"><a class="markdownIt-Anchor" href="#controller-控制器"></a> Controller 控制器</h2>
+<h2 id="ext-扩展器"><a class="markdownIt-Anchor" href="#ext-扩展器"></a> EXT 扩展器</h2>
 <h3 id="功能要求-5"><a class="markdownIt-Anchor" href="#功能要求-5"></a> 功能要求</h3>
-<p>将输入的opcode和funct转化为CPU各部分对应信号输出</p>
-<h3 id="实现方式"><a class="markdownIt-Anchor" href="#实现方式"></a> 实现方式</h3>
-<p>将Controller分为将opcode和funct转化为各个指令对应的独热输出的AND_logic模块和将各个指令对应到不同输出信号的OR_logic模块，两模块不额外进行封装，直接在顶层模块中进行连接，这样可以通过两模块中间线的高亮直观判断当前在执行何种指令。</p>
+<ul>
+<li>将输入的立即数进行扩展</li>
+</ul>
 <h3 id="输入端口-5"><a class="markdownIt-Anchor" href="#输入端口-5"></a> 输入端口</h3>
 <ul>
-<li>OP [5:0] 标识命令种类的指令，按MIPS汇编标准执行</li>
-<li>func [5:0] 标识R型指令具体种类的指令，按MIPS汇编标准执行</li>
+<li>Imm [15:0] Inst指令中的立即数部分</li>
+<li>ExtType 扩展方式</li>
 </ul>
 <h3 id="输出端口-5"><a class="markdownIt-Anchor" href="#输出端口-5"></a> 输出端口</h3>
 <ul>
-<li>Mem2Reg [1:0] 决定GRF写入数据来源，00代表ALU输出，01代表DM输出</li>
+<li>ExtOut [31:0] 扩展后的结果</li>
+</ul>
+<h3 id="行为描述"><a class="markdownIt-Anchor" href="#行为描述"></a> 行为描述</h3>
+<table>
+<thead>
+<tr>
+<th>ExtType</th>
+<th>扩展行为描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>进行零扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><msup><mn>1</mn><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mi>b</mi><mn>0</mn><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{1&#x27;b0\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.001892em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord"><span class="mord">1</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.751892em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span><span class="mord mathnormal">b</span><span class="mord">0</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
+</tr>
+<tr>
+<td>1</td>
+<td>进行符号扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><mi>I</mi><mi>m</mi><mi>m</mi><mo stretchy="false">[</mo><mn>15</mn><mo stretchy="false">]</mo><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{Imm[15]\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord mathnormal" style="margin-right:0.07847em;">I</span><span class="mord mathnormal">m</span><span class="mord mathnormal">m</span><span class="mopen">[</span><span class="mord">1</span><span class="mord">5</span><span class="mclose">]</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
+</tr>
+</tbody>
+</table>
+<h2 id="controller-控制器"><a class="markdownIt-Anchor" href="#controller-控制器"></a> Controller 控制器</h2>
+<h3 id="功能要求-6"><a class="markdownIt-Anchor" href="#功能要求-6"></a> 功能要求</h3>
+<p>将输入的opcode和funct转化为CPU各部分对应信号输出</p>
+<h3 id="实现方式"><a class="markdownIt-Anchor" href="#实现方式"></a> 实现方式</h3>
+<p>分类判断后指定各项输出的值。</p>
+<h3 id="输入端口-6"><a class="markdownIt-Anchor" href="#输入端口-6"></a> 输入端口</h3>
+<ul>
+<li>OPCode [5:0] 标识命令种类的指令，按MIPS汇编标准执行</li>
+<li>func [5:0] 标识R型指令具体种类的指令，按MIPS汇编标准执行</li>
+</ul>
+<h3 id="输出端口-6"><a class="markdownIt-Anchor" href="#输出端口-6"></a> 输出端口</h3>
+<ul>
+<li>ExtType 决定扩展器扩展类型，0零扩展，1符号扩展</li>
+<li>Mem2Reg [1:0] 决定GRF写入数据来源，00代表ALU输出，01代表DM输出，10代表PCNxt</li>
 <li>MemWrite 决定DM是否允许写入</li>
-<li>Branch [1:0] 指示当前的指令类型，00代表指令不影响跳转，01代表Branch指令，10代表J型指令（跳转到标记），11代表jr类指令（跳转到寄存器地址）</li>
-<li>ALUCtrl [2:0] 决定当前ALU执行何种运算，具体见ALU说明</li>
+<li>PCSrc [1:0] 决定下条PC指令使用何处输入，00代表PC+=4，01代表branch，10代表jal，11代表jr</li>
+<li>ALUCtrl [3:0] 决定当前ALU执行何种运算，具体见ALU说明</li>
 <li>ALUSrc 决定ALU的第二参来自GRF的RD2（对应值0）还是立即数（对应值1）</li>
-<li>RegDest [1:0] 决定寄存器写入地址来源是Inst[15:11]（对应值01）还是Inst[20:16]（对应值00）</li>
+<li>RegDest [1:0]决定GRF写入地址来源是Inst[20:16]（rt, 对应值00，I型）还是Inst[15:11]（rd, 对应值01，R型），还是31即$ra（对应值10，jal）</li>
 <li>RegWrite 决定GRF是否允许写入</li>
-<li>ExtSign 决定扩展方式，0代表0扩展，1代表符号扩展。</li>
 </ul>
 <h3 id="各指令对应controller输出"><a class="markdownIt-Anchor" href="#各指令对应controller输出"></a> 各指令对应Controller输出</h3>
 <table>
 <thead>
 <tr>
-<th>func</th>
-<th>10 0000</th>
-<th>10 0010</th>
-<th>-</th>
-<th></th>
-<th></th>
-<th></th>
-<th></th>
+<th>op</th>
+<th>00 0000</th>
+<th>00 0000</th>
+<th>00 1101</th>
+<th>10 0011</th>
+<th>10 1011</th>
+<th>00 0100</th>
+<th>00 1111</th>
+<th>00 0011</th>
+<th>00 0000</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>op</strong></td>
-<td><strong>00 0000</strong></td>
-<td><strong>00 0000</strong></td>
-<td><strong>00 1101</strong></td>
-<td><strong>10 0011</strong></td>
-<td><strong>10 1011</strong></td>
-<td><strong>00 0100</strong></td>
-<td><strong>00 1111</strong></td>
+<td>func</td>
+<td>10 0000</td>
+<td>10 0010</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>00 1000</td>
 </tr>
 <tr>
 <td></td>
@@ -534,6 +623,8 @@
 <td>sw</td>
 <td>beq</td>
 <td>lui</td>
+<td>jal</td>
+<td>jr</td>
 </tr>
 <tr>
 <td>Mem2Reg</td>
@@ -543,7 +634,9 @@
 <td>01</td>
 <td>-</td>
 <td>-</td>
-<td>0</td>
+<td>00</td>
+<td>10</td>
+<td>-</td>
 </tr>
 <tr>
 <td>MemWrite</td>
@@ -554,9 +647,11 @@
 <td>1</td>
 <td>0</td>
 <td>0</td>
+<td>0</td>
+<td>0</td>
 </tr>
 <tr>
-<td>Branch</td>
+<td>PCSrc</td>
 <td>00</td>
 <td>00</td>
 <td>00</td>
@@ -564,6 +659,8 @@
 <td>00</td>
 <td>01</td>
 <td>00</td>
+<td>10</td>
+<td>11</td>
 </tr>
 <tr>
 <td>ALUCtrl</td>
@@ -574,6 +671,8 @@
 <td>2</td>
 <td>3</td>
 <td>4</td>
+<td>-</td>
+<td>-</td>
 </tr>
 <tr>
 <td>(CalcMode)</td>
@@ -584,6 +683,8 @@
 <td>add</td>
 <td>sub</td>
 <td>lui</td>
+<td>-</td>
+<td>-</td>
 </tr>
 <tr>
 <td>ALUSrc</td>
@@ -594,6 +695,8 @@
 <td>1</td>
 <td>0</td>
 <td>1</td>
+<td>-</td>
+<td>-</td>
 </tr>
 <tr>
 <td>RegDest</td>
@@ -604,6 +707,8 @@
 <td>-</td>
 <td>-</td>
 <td>00</td>
+<td>10</td>
+<td>-</td>
 </tr>
 <tr>
 <td>RegWrite</td>
@@ -614,6 +719,8 @@
 <td>0</td>
 <td>0</td>
 <td>1</td>
+<td>1</td>
+<td>0</td>
 </tr>
 <tr>
 <td>ExtSign</td>
@@ -623,6 +730,8 @@
 <td>1</td>
 <td>1</td>
 <td>1</td>
+<td>0</td>
+<td>0</td>
 <td>0</td>
 </tr>
 </tbody>
@@ -1816,748 +1925,55 @@
       </tags>
   </entry>
   <entry>
-    <title>计算机组成 P4 CPU 设计文档</title>
-    <url>/2022/11/06/CO-P4-CPU/</url>
-    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
-<h3 id="1-dm输入示例"><a class="markdownIt-Anchor" href="#1-dm输入示例"></a> 1 DM输入示例</h3>
-<p>addr信号从ALU的输出结果取[11:2]得到，使用到DM的指令有lw和sw，都需要将对应寄存器值和立即数相加，因此这里DM的地址应为对应的ALU输出的相加结果。</p>
-<p>位数是[11:2]而不是[9:0]因为DM是按字对齐，（目前）仅支持按字读取和写入，且DM内部存储数据是以类似这样的格式存储：</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">reg</span> [<span class="number">31</span>:<span class="number">0</span>] im_reg [<span class="number">0</span>:<span class="number">1023</span>]</span><br></pre></td></tr></table></figure>
-<p>是按照32位数的数组进行存储的，因此如果输入时直接取[11:2]位（代表截去最低两位）可以直接取im_reg[addr]得到所需数据，不采用[9:0]的描述也是为了不混淆，明确展示这里取的是截取了末两位后取10位的ALU结果而不是直接取低10位的结果。</p>
-<h3 id="2-两种不同控制器译码方式"><a class="markdownIt-Anchor" href="#2-两种不同控制器译码方式"></a> 2 两种不同控制器译码方式</h3>
-<p>在Verilog编程中，记录<strong>指令对应的控制信号如何取值</strong>对应使用always @(*)模块，对于每个指令为控制信号赋值，以lui和jal指令为例，给出如下组合逻辑代码示例：（将输出各值定义为寄存器，此处为简便省略了default分支）</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">always</span> @(*) <span class="keyword">begin</span></span><br><span class="line">	<span class="keyword">case</span>(OPCode)			</span><br><span class="line">		<span class="number">6&#x27;b00_1111</span>: <span class="keyword">begin</span></span><br><span class="line">    	<span class="comment">// lui</span></span><br><span class="line">    	Mem2Reg &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      MemWrite &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      PCSrc &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      ALUCtrl &lt;= <span class="number">4&#x27;b0100</span>; <span class="comment">// lui</span></span><br><span class="line">      ALUSrc &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">      RegDest &lt;= <span class="number">2&#x27;b00</span>;</span><br><span class="line">      RegWrite &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">   	<span class="number">6&#x27;b00_0011</span>: <span class="keyword">begin</span></span><br><span class="line">    	<span class="comment">// jal</span></span><br><span class="line">      Mem2Reg &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      MemWrite &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      PCSrc &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      ALUCtrl &lt;= <span class="number">4&#x27;b0000</span>;</span><br><span class="line">      ALUSrc &lt;= <span class="number">1&#x27;b0</span>;</span><br><span class="line">      RegDest &lt;= <span class="number">2&#x27;b10</span>;</span><br><span class="line">      RegWrite &lt;= <span class="number">1&#x27;b1</span>;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="comment">// there should be a &quot;default&quot;, but too long so we don&#x27;t write it here</span></span><br><span class="line">  <span class="keyword">endcase</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<p>而对于记录<strong>控制信号每种取值所对应的指令</strong>，对应使用assign模块直接判断指令是否是某个值，以jal和lw为例，给出如下组合逻辑代码：（省略了部分output数据）</p>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">wire</span> isJal, isLw;</span><br><span class="line"><span class="keyword">assign</span> isJal = (op == <span class="number">6&#x27;b00_0011</span>);</span><br><span class="line"><span class="keyword">assign</span> isLw = (op == <span class="number">6&#x27;b10_0011</span>);</span><br><span class="line"><span class="keyword">assign</span> Mem2Reg[<span class="number">0</span>] = isLw;</span><br><span class="line"><span class="keyword">assign</span> Mem2Reg[<span class="number">1</span>] = isJal;</span><br><span class="line"><span class="keyword">assign</span> RegWrite = isLw || isJal;</span><br><span class="line"><span class="comment">// there are more output wires but too long so we don&#x27;t write it here</span></span><br></pre></td></tr></table></figure>
-<p>可以看到，第一种形式按照输入的指令类型进行区分，第二种形式根据输出的端口类型进行区分。第二种不需要额外增加reg变量且代码相对更加简便，对于许多种指令只需要每个控制码输出（的每个位）写一行，对所有该值取1的指令或一遍即可。但是第二种写法缺乏可读性，不能一目了然地得到每个指令对应的控制码，增加新指令时也容易写错，而第一种按照不同的指令区分，可读性较高。因此这里选择了第一种写法。</p>
-<h3 id="3-对比同步异步复位"><a class="markdownIt-Anchor" href="#3-对比同步异步复位"></a> 3 对比同步异步复位</h3>
-<p>同步复位中以clk上升沿为准，如果clk上升沿时有reset再复位，因此<strong>clk信号比reset信号优先</strong>。</p>
-<p>异步复位中只要reset为真就进行复位，不考虑clk的值，因此<strong>reset信号比clk信号优先</strong>。</p>
-<h3 id="4-解释addi-addiu以及add-addu的等价性"><a class="markdownIt-Anchor" href="#4-解释addi-addiu以及add-addu的等价性"></a> 4 解释addi addiu以及add addu的等价性</h3>
-<p>在<em>MIPS32® Architecture For Programmers Volume II: The MIPS32® Instruction Set</em>中描述指令行为的部分，Add指令的行为如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">temp &lt;- &#123;GPR[rs][31], GPR[rs][31:0]&#125; + &#123;GPR[rt][31], GPR[rt][31:0]&#125;</span><br><span class="line">if temp[32] != temp[31] then</span><br><span class="line">	SignalException(IntegerOverflow)</span><br><span class="line">else</span><br><span class="line">	GPR[rd] &lt;- temp</span><br><span class="line">endif</span><br></pre></td></tr></table></figure>
-<p>而Addu指令行为如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">temp &lt;- GPR[rs] + GPR[rt]</span><br><span class="line">GPR[rd] &lt;- temp</span><br></pre></td></tr></table></figure>
-<p>（Addi和Addiu指令大同小异，只是将对应的第二参寄存器值替换为符号扩展到33位（addi）或32位（addiu）的立即数而已，这里不额外附上对应伪代码）</p>
-<p>可以看到，“有符号”加法Add在计算中将两个加数符号扩展到33位数，加和之后判断结果数第33位和第32位是否相等，不等的话报错“整型溢出”。逻辑很好理解——如果扩展到33位后结果数的符号位（第33位）和最高位（第32位）不等，代表使用32位数无法正确表达结果的正负性，此时就发生了结果溢出。如果忽略溢出，也就是在32位数可表达范围内规定最大值+1得到最小值，最小值-1得到最大值，则显然不需要上述处理。同理对于addi和addiu也是如此。</p>
-<h2 id="测试方法"><a class="markdownIt-Anchor" href="#测试方法"></a> 测试方法</h2>
-<p>采用了讨论区中石睿知同学分享的自动生成输出的魔改MARS，并且使用了如下的自动生成测试汇编代码的python程序生成汇编代码，通过将运行结果比对来进行调试。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> randint <span class="keyword">as</span> rd</span><br><span class="line"></span><br><span class="line">reg_calci = [<span class="string">&quot;ori&quot;</span>]</span><br><span class="line">reg_calc = [<span class="string">&quot;add&quot;</span>, <span class="string">&quot;sub&quot;</span>]</span><br><span class="line">branch = [<span class="string">&quot;beq&quot;</span>]</span><br><span class="line"><span class="comment"># load_memory = [&quot;lw&quot;]</span></span><br><span class="line"><span class="comment"># write_memory = [&quot;sw&quot;]</span></span><br><span class="line">jump = [<span class="string">&quot;jal&quot;</span>]</span><br><span class="line">jump_reg = [<span class="string">&quot;jr&quot;</span>]</span><br><span class="line">load_high = [<span class="string">&quot;lui&quot;</span>]</span><br><span class="line">space = [<span class="string">&quot;nop&quot;</span>]</span><br><span class="line"></span><br><span class="line">IMM_HIGH = <span class="number">100</span></span><br><span class="line">IMM_LOW = <span class="number">1</span></span><br><span class="line">DATA_MAX = <span class="number">10</span></span><br><span class="line">auto_label_cnt = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_ran</span>(<span class="params">arr</span>):</span><br><span class="line">    <span class="keyword">return</span> arr[rd(<span class="number">0</span>, <span class="built_in">len</span>(arr)-<span class="number">1</span>)]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_ran_reg</span>():</span><br><span class="line">    <span class="keyword">return</span> rd(<span class="number">1</span>, <span class="number">31</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_calci</span>(<span class="params">pos = -<span class="number">1</span>, rt = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">                imm = rd(<span class="params">IMM_LOW, IMM_HIGH</span>)</span>):</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(reg_calci)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, %d&quot;</span> % (reg_calci[pos], rt, rs, imm)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_calc</span>(<span class="params">pos = -<span class="number">1</span>, rd = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">            rt = get_ran_reg(<span class="params"></span>)</span>):</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(reg_calc)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, $%d&quot;</span> % (reg_calc[pos], rd, rs, rt)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_branch</span>(<span class="params">pos = -<span class="number">1</span>, rt = get_ran_reg(<span class="params"></span>), rs = get_ran_reg(<span class="params"></span>), </span></span><br><span class="line"><span class="params">                label = <span class="string">&quot;&quot;</span>, neg = <span class="literal">False</span></span>):</span><br><span class="line">    <span class="keyword">global</span> auto_label_cnt</span><br><span class="line">    <span class="keyword">if</span> pos == -<span class="number">1</span>:</span><br><span class="line">        pos = rd(<span class="number">0</span>, <span class="built_in">len</span>(branch)-<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span> <span class="keyword">and</span> neg:</span><br><span class="line">        auto_label_cnt += <span class="number">3</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;jal auto_label_%d\nauto_label_%d:\n%s\njal auto_label_%d\n&quot;</span> \</span><br><span class="line">                <span class="string">&quot;auto_label_%d\n%s $%d, $%d, auto_label_%d\nauto_label_%d:&quot;</span> % \</span><br><span class="line">                (auto_label_cnt-<span class="number">2</span>, auto_label_cnt-<span class="number">1</span>, put_calci(), auto_label_cnt, </span><br><span class="line">                auto_label_cnt-<span class="number">2</span>, branch[pos], rt, rs, auto_label_cnt-<span class="number">1</span>, auto_label_cnt)</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        auto_label_cnt += <span class="number">1</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, auto_label_%d\n%s\nauto_label_%d:\n%s&quot;</span> % \</span><br><span class="line">                (branch[pos], rt, rs, auto_label_cnt, put_calci(), </span><br><span class="line">                auto_label_cnt, put_calci())</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s $%d, $%d, %s&quot;</span> % (reg_calci[pos], rt, rs, label)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_lw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;lw $%d, %s($%d)&quot;</span> % (rt, label, base)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_sw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;sw $%d, %s($%d)&quot;</span> % (rt, label, base)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">put_lsw</span>(<span class="params">base = get_ran_reg(<span class="params"></span>), rt = get_ran_reg(<span class="params"></span>), label = <span class="string">&quot;&quot;</span></span>):</span><br><span class="line">    <span class="keyword">if</span> label == <span class="string">&quot;&quot;</span>:</span><br><span class="line">        label = <span class="string">&quot;data_label%d&quot;</span> % rd(<span class="number">1</span>, DATA_MAX)</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;%s\n%s&quot;</span> % (put_lw(base=base, rt=rt, label=label),</span><br><span class="line">                       put_sw(base=base, rt=rt, label=label))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">prepare_data</span>():</span><br><span class="line">    s = <span class="string">&quot;.data\n&quot;</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, DATA_MAX+<span class="number">1</span>):</span><br><span class="line">        s += <span class="string">&quot;data_label%d: .space 4\n&quot;</span> % i</span><br><span class="line">    s += <span class="string">&quot;\n.text\n&quot;</span></span><br><span class="line">    <span class="keyword">return</span> s</span><br></pre></td></tr></table></figure>
-<h2 id="指令集综述"><a class="markdownIt-Anchor" href="#指令集综述"></a> 指令集综述</h2>
-<h3 id="简要说明"><a class="markdownIt-Anchor" href="#简要说明"></a> 简要说明</h3>
-<p>包含指令集如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub ori lw sw beq lui jal jr nop</span><br></pre></td></tr></table></figure>
-<h3 id="r-i-j-型指令说明"><a class="markdownIt-Anchor" href="#r-i-j-型指令说明"></a> R I J 型指令说明</h3>
-<h4 id="r型"><a class="markdownIt-Anchor" href="#r型"></a> R型</h4>
-<p>包括</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub and or nor sll srl jr</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16 (5)</th>
-<th style="text-align:center">15~11 (5)</th>
-<th style="text-align:center">10~6 (5)</th>
-<th style="text-align:center">5~0 (6)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">类型</td>
-<td style="text-align:center">操作码</td>
-<td style="text-align:center">寄存器地址</td>
-<td style="text-align:center">寄存器地址</td>
-<td style="text-align:center">寄存器地址</td>
-<td style="text-align:center">五位立即数</td>
-<td style="text-align:center">操作码</td>
-</tr>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">rd</td>
-<td style="text-align:center">shamt (sa)</td>
-<td style="text-align:center">func</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">恒为0x0</td>
-<td style="text-align:center">第一参</td>
-<td style="text-align:center">第二参</td>
-<td style="text-align:center">目的参</td>
-<td style="text-align:center">移位量</td>
-<td style="text-align:center">指示操作类型</td>
-</tr>
-</tbody>
-</table>
-<h3 id="i型"><a class="markdownIt-Anchor" href="#i型"></a> I型</h3>
-<p>包括</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi andi ori xori lw sw beq bne lui</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">类型</td>
-<td style="text-align:center">操作码</td>
-<td style="text-align:center">寄存器地址</td>
-<td style="text-align:center">寄存器地址</td>
-<td style="text-align:center">立即数</td>
-</tr>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">imm</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">指示操作类型</td>
-<td style="text-align:center">第一参</td>
-<td style="text-align:center">目的参</td>
-<td style="text-align:center">立即数</td>
-</tr>
-</tbody>
-</table>
-<h3 id="j型"><a class="markdownIt-Anchor" href="#j型"></a> J型</h3>
-<p>包括</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">j jal</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~0 (26)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">类型</td>
-<td style="text-align:center">操作码</td>
-<td style="text-align:center">指令地址</td>
-</tr>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">address</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">指示操作类型</td>
-<td style="text-align:center">目标跳转位置</td>
-</tr>
-</tbody>
-</table>
-<h3 id="无符号加-add"><a class="markdownIt-Anchor" href="#无符号加-add"></a> （无）符号加 add</h3>
-<p>按照要求，依照add的机器码处理，但加法依照无符号数加法完成。取两个寄存器中的数，无符号相加（不考虑溢出）后存入目标寄存器。为R型指令。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16 (5)</th>
-<th style="text-align:center">15~11 (5)</th>
-<th style="text-align:center">10~6 (5)</th>
-<th style="text-align:center">5~0 (6)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">rd</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">func</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">000000</td>
-<td style="text-align:center">第一加数地址</td>
-<td style="text-align:center">第二加数地址</td>
-<td style="text-align:center">结果存储地址</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">100000</td>
-</tr>
-</tbody>
-</table>
-<h3 id="无符号减-sub"><a class="markdownIt-Anchor" href="#无符号减-sub"></a> （无）符号减 sub</h3>
-<p>按照要求，依照sub的机器码处理，但减法依照无符号数加法完成。无符号相减（不考虑溢出）后存入目标寄存器。为R型指令。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16 (5)</th>
-<th style="text-align:center">15~11 (5)</th>
-<th style="text-align:center">10~6 (5)</th>
-<th style="text-align:center">5~0 (6)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">rd</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">func</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">000000</td>
-<td style="text-align:center">被减数地址</td>
-<td style="text-align:center">减数地址</td>
-<td style="text-align:center">结果存储地址</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">100010</td>
-</tr>
-</tbody>
-</table>
-<h3 id="或立即数-ori"><a class="markdownIt-Anchor" href="#或立即数-ori"></a> 或立即数 ori</h3>
-<p>按照要求，即为将某寄存器中数或一个16位立即数，将得到的数存到目标寄存器中。为I型指令。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">imm</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">001101</td>
-<td style="text-align:center">被或数地址</td>
-<td style="text-align:center">结果存储地址</td>
-<td style="text-align:center">立即数</td>
-</tr>
-</tbody>
-</table>
-<h3 id="加载字-lw"><a class="markdownIt-Anchor" href="#加载字-lw"></a> 加载字 lw</h3>
-<p>取内存中的一字长的内容存入目标寄存器。为I型指令。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addr &lt;- GPR[base] + sign_ext(offset)</span><br><span class="line">GPR[rt] &lt;- memory[addr]</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">base</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">offset</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">100011</td>
-<td style="text-align:center">内存地址所在寄存器</td>
-<td style="text-align:center">结果存储地址</td>
-<td style="text-align:center">内存地址偏移量（立即数）</td>
-</tr>
-</tbody>
-</table>
-<h3 id="存储字-sw"><a class="markdownIt-Anchor" href="#存储字-sw"></a> 存储字 sw</h3>
-<p>将目标寄存器中的内容存入内存中一字长的位置。为I型指令。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addr &lt;- GPR[base] + sign_ext(offset)</span><br><span class="line">memory[addr] &lt;- GPR[rt] </span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">base</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">offset</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">101011</td>
-<td style="text-align:center">内存地址所在寄存器</td>
-<td style="text-align:center">目标寄存器地址</td>
-<td style="text-align:center">内存地址偏移量（立即数）</td>
-</tr>
-</tbody>
-</table>
-<h3 id="相等时转移-beq"><a class="markdownIt-Anchor" href="#相等时转移-beq"></a> 相等时转移 beq</h3>
-<p>当两个目标寄存器中存储的值相等时转移到目标指令处。为I型指令。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">if (GPR[rs] == GPR[rt])</span><br><span class="line">	PC &lt;- PC + 4 + sign_extend(&#123;offset,2&#123;0&#125;&#125;)</span><br><span class="line">else</span><br><span class="line">	PC &lt;- PC + 4</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">offset</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">000100</td>
-<td style="text-align:center">第一目标寄存器</td>
-<td style="text-align:center">第二目标寄存器</td>
-<td style="text-align:center">转移目标指令地址</td>
-</tr>
-</tbody>
-</table>
-<h3 id="立即数加载至高位-lui"><a class="markdownIt-Anchor" href="#立即数加载至高位-lui"></a> 立即数加载至高位 lui</h3>
-<p>将立即数赋值到目标寄存器的高16位。为I型指令。</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16(5)</th>
-<th style="text-align:center">15~0 (16)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">rt</td>
-<td style="text-align:center">imm</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">001111</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">目标寄存器</td>
-<td style="text-align:center">立即数</td>
-</tr>
-</tbody>
-</table>
-<h3 id="跳转并链接-jal"><a class="markdownIt-Anchor" href="#跳转并链接-jal"></a> 跳转并链接 jal</h3>
-<p>将当前的PC+4存储在GPR[31]（$ra）中，按照给定的地址进行跳转。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">PC &lt;- &#123;PC[31:28], instr_index, &#123;2&#123;0&#125;&#125;&#125;</span><br><span class="line">GPR[31]($ra) &lt;- PC + 4</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~0 (26)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">instr_index</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">000011</td>
-<td style="text-align:center">目标跳转位置</td>
-</tr>
-</tbody>
-</table>
-<h3 id="跳转至寄存器-jr"><a class="markdownIt-Anchor" href="#跳转至寄存器-jr"></a> 跳转至寄存器 jr</h3>
-<p>跳转到目标寄存器存储的地址指定的指令处</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">PC &lt;- GPR[rs]</span><br></pre></td></tr></table></figure>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">位置 (位数)</th>
-<th style="text-align:center">31~26 (6)</th>
-<th style="text-align:center">25~21 (5)</th>
-<th style="text-align:center">20~16 (5)</th>
-<th style="text-align:center">15~11 (5)</th>
-<th style="text-align:center">10~6 (5)</th>
-<th style="text-align:center">5~0 (6)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">名称</td>
-<td style="text-align:center">OP</td>
-<td style="text-align:center">rs</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">0</td>
-<td style="text-align:center">func</td>
-</tr>
-<tr>
-<td style="text-align:center">解释</td>
-<td style="text-align:center">000000</td>
-<td style="text-align:center">目标寄存器地址</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">00000</td>
-<td style="text-align:center">001000</td>
-</tr>
-</tbody>
-</table>
-<h3 id="空指令-nop"><a class="markdownIt-Anchor" href="#空指令-nop"></a> 空指令 nop</h3>
-<p>机器码为0x00000000，不进行任何有效行为。</p>
-<h2 id="ifu-取指令单元"><a class="markdownIt-Anchor" href="#ifu-取指令单元"></a> IFU 取指令单元</h2>
-<h3 id="功能要求"><a class="markdownIt-Anchor" href="#功能要求"></a> 功能要求</h3>
-<ul>
-<li>内部包括 PC（程序计数器）、IM（指令存储器）及相关逻辑。</li>
-<li>PC <strong>同步复位</strong>，复位值为起始地址。</li>
-<li><strong>起始地址：0x00003000。</strong></li>
-<li>IM 容量为 32bit × 4096字（按字取的地址宽度12位）。</li>
-</ul>
-<h3 id="输入端口"><a class="markdownIt-Anchor" href="#输入端口"></a> 输入端口</h3>
-<ul>
-<li>clk 时钟信号</li>
-<li>Reset 同步复位信号</li>
-<li>PCSrc [1:0] 决定下条PC指令使用何处输入</li>
-<li>ALUZero 对应ALU的Zero输出，代表是否允许branch，1代表允许</li>
-<li>PCImm [15:0] 符号扩展后的立即数（对应beq给定的立即数）</li>
-<li>PCInstrIndex [25:0] J型指令的立即数值（对应jal给定的立即数）</li>
-<li>PCJumpReg [31:0] 来自寄存器的跳转地址（对应jr指令对应地址读取到的值）</li>
-</ul>
-<h3 id="输出端口"><a class="markdownIt-Anchor" href="#输出端口"></a> 输出端口</h3>
-<ul>
-<li>Inst [31:0] 取得的指令</li>
-<li>PCNxt [31:0] 对应PC+4，用于jal</li>
-</ul>
-<h3 id="行为逻辑"><a class="markdownIt-Anchor" href="#行为逻辑"></a> 行为逻辑</h3>
-<ul>
-<li>支持同步复位</li>
-<li>任何时刻，输出当前PC寄存器对应地址中的指令</li>
-<li>每个clk上沿更新PC的值：</li>
-</ul>
-<figure class="highlight verilog"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b00</span> || (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">0</span>)) <span class="keyword">begin</span> <span class="comment">// 无b/j指令或b指令无效，直接PC+=4</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span>;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b01</span> &amp;&amp; ALUZero == <span class="number">1</span>) <span class="keyword">begin</span> <span class="comment">// b类指令生效</span></span><br><span class="line">  PC &lt;= PC + <span class="number">4</span> + &#123;&#123;<span class="number">14</span>&#123;PCImm[<span class="number">15</span>]&#125;&#125;, PCImm, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (PCSrc == <span class="number">2&#x27;b10</span>) <span class="keyword">begin</span> <span class="comment">// jal</span></span><br><span class="line">  PC &lt;= &#123;PC[<span class="number">31</span>:<span class="number">28</span>], PCInstrIndex, &#123;<span class="number">2</span>&#123;<span class="number">1&#x27;b0</span>&#125;&#125;&#125;;</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">begin</span> <span class="comment">// jr</span></span><br><span class="line">  PC &lt;= PCJumpReg;</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-<h2 id="alu-算术逻辑单元"><a class="markdownIt-Anchor" href="#alu-算术逻辑单元"></a> ALU 算术逻辑单元</h2>
-<h3 id="功能要求-2"><a class="markdownIt-Anchor" href="#功能要求-2"></a> 功能要求</h3>
-<ul>
-<li>提供 32 位加、减、或运算及大小比较等功能。</li>
-<li>加减法按无符号处理（不考虑溢出）。</li>
-</ul>
-<h3 id="输入端口-2"><a class="markdownIt-Anchor" href="#输入端口-2"></a> 输入端口</h3>
-<ul>
-<li>SrcA [31:0] 第一个参数输入</li>
-<li>SrcB [31:0] 第二个参数输入</li>
-<li>ALUCtrl [3:0] ALU操作类型控制码</li>
-</ul>
-<h3 id="输出端口-2"><a class="markdownIt-Anchor" href="#输出端口-2"></a> 输出端口</h3>
-<ul>
-<li>Zero 输出结果是否为0</li>
-<li>ALUResult [31:0] 计算结果</li>
-</ul>
-<h3 id="控制信号说明"><a class="markdownIt-Anchor" href="#控制信号说明"></a> 控制信号说明</h3>
-<ul>
-<li>或运算 0000</li>
-<li>与运算 0001</li>
-<li>加法运算（无符号无溢出） 0010</li>
-<li>减法运算（无符号无溢出） 0011</li>
-<li>立即数加载至高位 0100</li>
-<li>或立即数（将SrcB取低16位进行0扩展后和SrcA取或） 0101</li>
-</ul>
-<h2 id="grf-通用寄存器组"><a class="markdownIt-Anchor" href="#grf-通用寄存器组"></a> GRF 通用寄存器组</h2>
-<h3 id="功能要求-3"><a class="markdownIt-Anchor" href="#功能要求-3"></a> 功能要求</h3>
-<ul>
-<li>用具有写使能的寄存器实现，寄存器总数为 32 个，应具有<strong>同步复位</strong>功能。</li>
-<li><strong>0 号寄存器</strong>的值始终保持为 0。其他寄存器<strong>初始值（复位后）均为 0</strong>，无需专门设置。</li>
-</ul>
-<h3 id="输入端口-3"><a class="markdownIt-Anchor" href="#输入端口-3"></a> 输入端口</h3>
-<ul>
-<li>clk 时钟信号</li>
-<li>Reset同步复位信号</li>
-<li>WE 写使能信号</li>
-<li>A1 [4:0] 第一读取地址</li>
-<li>A2 [4:0] 第二读取地址</li>
-<li>A3 [4:0] 写入地址</li>
-<li>WD [31:0] 写入数据输入</li>
-</ul>
-<h3 id="输出端口-3"><a class="markdownIt-Anchor" href="#输出端口-3"></a> 输出端口</h3>
-<ul>
-<li>RD1 [31:0] 第一读取输出 输出A1地址的寄存器中的数据</li>
-<li>RD2 [31:0] 第二读取输出 输出A2地址的寄存器中的数据</li>
-</ul>
-<h3 id="功能说明"><a class="markdownIt-Anchor" href="#功能说明"></a> 功能说明</h3>
-<ul>
-<li>任何时刻，RD1和RD2都输出A1和A2对应地址的寄存器中的数据</li>
-<li>Reset同步复位，将所有寄存器复位为0</li>
-<li>0号寄存器永远保持为0</li>
-<li>当WE为真时，将WD的数据在clk上沿写入A3对应地址的寄存器</li>
-</ul>
-<h2 id="dm-数据存储器内存"><a class="markdownIt-Anchor" href="#dm-数据存储器内存"></a> DM 数据存储器（内存）</h2>
-<h3 id="功能要求-4"><a class="markdownIt-Anchor" href="#功能要求-4"></a> 功能要求</h3>
-<ul>
-<li>使用 RAM 实现，容量为 32bit × 3072字，应具有<strong>同步复位</strong>功能，复位值为 0x00000000。</li>
-<li><strong>起始地址：0x00000000</strong>。</li>
-</ul>
-<h3 id="输入端口-4"><a class="markdownIt-Anchor" href="#输入端口-4"></a> 输入端口</h3>
-<ul>
-<li>clk 时钟信号</li>
-<li>Reset 同步复位信号</li>
-<li>WE 写使能信号</li>
-<li>Addr [31:0] 写入/读取地址</li>
-<li>WD [31:0] 写入数据</li>
-</ul>
-<h3 id="输出端口-4"><a class="markdownIt-Anchor" href="#输出端口-4"></a> 输出端口</h3>
-<ul>
-<li>RD [31:0] 读取结果数据</li>
-</ul>
-<h3 id="功能说明-2"><a class="markdownIt-Anchor" href="#功能说明-2"></a> 功能说明</h3>
-<ul>
-<li>任何时刻，在RD输出Addr对应内存地址的内存数据</li>
-<li>当WE为真时，将WD的数据在clk上沿写入Addr对应内存地址</li>
-</ul>
-<h2 id="ext-扩展器"><a class="markdownIt-Anchor" href="#ext-扩展器"></a> EXT 扩展器</h2>
-<h3 id="功能要求-5"><a class="markdownIt-Anchor" href="#功能要求-5"></a> 功能要求</h3>
-<ul>
-<li>将输入的立即数进行扩展</li>
-</ul>
-<h3 id="输入端口-5"><a class="markdownIt-Anchor" href="#输入端口-5"></a> 输入端口</h3>
-<ul>
-<li>Imm [15:0] Inst指令中的立即数部分</li>
-<li>ExtType 扩展方式</li>
-</ul>
-<h3 id="输出端口-5"><a class="markdownIt-Anchor" href="#输出端口-5"></a> 输出端口</h3>
-<ul>
-<li>ExtOut [31:0] 扩展后的结果</li>
-</ul>
-<h3 id="行为描述"><a class="markdownIt-Anchor" href="#行为描述"></a> 行为描述</h3>
-<table>
-<thead>
-<tr>
-<th>ExtType</th>
-<th>扩展行为描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td>进行零扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><msup><mn>1</mn><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mi>b</mi><mn>0</mn><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{1&#x27;b0\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.001892em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord"><span class="mord">1</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.751892em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span><span class="mord mathnormal">b</span><span class="mord">0</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
-</tr>
-<tr>
-<td>1</td>
-<td>进行符号扩展，即返回 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><mo stretchy="false">{</mo><mn>16</mn><mo stretchy="false">{</mo><mi>I</mi><mi>m</mi><mi>m</mi><mo stretchy="false">[</mo><mn>15</mn><mo stretchy="false">]</mo><mo stretchy="false">}</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\{\{16\{Imm[15]\}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mopen">{</span><span class="mord">1</span><span class="mord">6</span><span class="mopen">{</span><span class="mord mathnormal" style="margin-right:0.07847em;">I</span><span class="mord mathnormal">m</span><span class="mord mathnormal">m</span><span class="mopen">[</span><span class="mord">1</span><span class="mord">5</span><span class="mclose">]</span><span class="mclose">}</span><span class="mclose">}</span></span></span></span>, Imm}</td>
-</tr>
-</tbody>
-</table>
-<h2 id="controller-控制器"><a class="markdownIt-Anchor" href="#controller-控制器"></a> Controller 控制器</h2>
-<h3 id="功能要求-6"><a class="markdownIt-Anchor" href="#功能要求-6"></a> 功能要求</h3>
-<p>将输入的opcode和funct转化为CPU各部分对应信号输出</p>
-<h3 id="实现方式"><a class="markdownIt-Anchor" href="#实现方式"></a> 实现方式</h3>
-<p>分类判断后指定各项输出的值。</p>
-<h3 id="输入端口-6"><a class="markdownIt-Anchor" href="#输入端口-6"></a> 输入端口</h3>
-<ul>
-<li>OPCode [5:0] 标识命令种类的指令，按MIPS汇编标准执行</li>
-<li>func [5:0] 标识R型指令具体种类的指令，按MIPS汇编标准执行</li>
-</ul>
-<h3 id="输出端口-6"><a class="markdownIt-Anchor" href="#输出端口-6"></a> 输出端口</h3>
-<ul>
-<li>ExtType 决定扩展器扩展类型，0零扩展，1符号扩展</li>
-<li>Mem2Reg [1:0] 决定GRF写入数据来源，00代表ALU输出，01代表DM输出，10代表PCNxt</li>
-<li>MemWrite 决定DM是否允许写入</li>
-<li>PCSrc [1:0] 决定下条PC指令使用何处输入，00代表PC+=4，01代表branch，10代表jal，11代表jr</li>
-<li>ALUCtrl [3:0] 决定当前ALU执行何种运算，具体见ALU说明</li>
-<li>ALUSrc 决定ALU的第二参来自GRF的RD2（对应值0）还是立即数（对应值1）</li>
-<li>RegDest [1:0]决定GRF写入地址来源是Inst[20:16]（rt, 对应值00，I型）还是Inst[15:11]（rd, 对应值01，R型），还是31即$ra（对应值10，jal）</li>
-<li>RegWrite 决定GRF是否允许写入</li>
-</ul>
-<h3 id="各指令对应controller输出"><a class="markdownIt-Anchor" href="#各指令对应controller输出"></a> 各指令对应Controller输出</h3>
-<table>
-<thead>
-<tr>
-<th>op</th>
-<th>00 0000</th>
-<th>00 0000</th>
-<th>00 1101</th>
-<th>10 0011</th>
-<th>10 1011</th>
-<th>00 0100</th>
-<th>00 1111</th>
-<th>00 0011</th>
-<th>00 0000</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>func</td>
-<td>10 0000</td>
-<td>10 0010</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>00 1000</td>
-</tr>
-<tr>
-<td></td>
-<td>add</td>
-<td>sub</td>
-<td>ori</td>
-<td>lw</td>
-<td>sw</td>
-<td>beq</td>
-<td>lui</td>
-<td>jal</td>
-<td>jr</td>
-</tr>
-<tr>
-<td>Mem2Reg</td>
-<td>00</td>
-<td>00</td>
-<td>00</td>
-<td>01</td>
-<td>-</td>
-<td>-</td>
-<td>00</td>
-<td>10</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MemWrite</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>1</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-</tr>
-<tr>
-<td>PCSrc</td>
-<td>00</td>
-<td>00</td>
-<td>00</td>
-<td>00</td>
-<td>00</td>
-<td>01</td>
-<td>00</td>
-<td>10</td>
-<td>11</td>
-</tr>
-<tr>
-<td>ALUCtrl</td>
-<td>2</td>
-<td>3</td>
-<td>5</td>
-<td>2</td>
-<td>2</td>
-<td>3</td>
-<td>4</td>
-<td>-</td>
-<td>-</td>
-</tr>
-<tr>
-<td>(CalcMode)</td>
-<td>add</td>
-<td>sub</td>
-<td>ori</td>
-<td>add</td>
-<td>add</td>
-<td>sub</td>
-<td>lui</td>
-<td>-</td>
-<td>-</td>
-</tr>
-<tr>
-<td>ALUSrc</td>
-<td>0</td>
-<td>0</td>
-<td>1</td>
-<td>1</td>
-<td>1</td>
-<td>0</td>
-<td>1</td>
-<td>-</td>
-<td>-</td>
-</tr>
-<tr>
-<td>RegDest</td>
-<td>01</td>
-<td>01</td>
-<td>00</td>
-<td>00</td>
-<td>-</td>
-<td>-</td>
-<td>00</td>
-<td>10</td>
-<td>-</td>
-</tr>
-<tr>
-<td>RegWrite</td>
-<td>1</td>
-<td>1</td>
-<td>1</td>
-<td>1</td>
-<td>0</td>
-<td>0</td>
-<td>1</td>
-<td>1</td>
-<td>0</td>
-</tr>
-<tr>
-<td>ExtSign</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>1</td>
-<td>1</td>
-<td>1</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-</tr>
-</tbody>
-</table>
+    <title>COINS Essay Note</title>
+    <url>/2023/07/05/COINS-Essay-Note/</url>
+    <content><![CDATA[<p>Compositional Human-Scene Interaction Synthesis with Semantic Control</p>
+<p>实现了一种通过高级语义规范生成给定3D场景中的人物动作的方法，比如“坐在椅子上”等。支持人物与3D环境的自然交互，支持多种交互的组合，通过扩展PROX数据集对比现有方法实现了更好的效果。</p>
+<p>语义示例：躺在沙发上、坐在桌子上、摸椅子、躺在椅子上、坐在地板上、摸床、坐在柜子上且摸床、站在地板上且摸显示器、站在地板上且摸桌子等。（不需要额外训练就能支持多种要求的组合）</p>
+<p>关注重点：<strong>语义、交互、动作生成、动作组合</strong></p>
+<h2 id="计算预设"><a class="markdownIt-Anchor" href="#计算预设"></a> 计算预设</h2>
+<h3 id="人体表示"><a class="markdownIt-Anchor" href="#人体表示"></a> 人体表示</h3>
+<p>使用SMPL-X模型表示，一个人被表示为顶点、面片和接触信息的集合。具体来说，存储了655个顶点的坐标、1296个面片的对应三顶点的编号、655个0/1接触特征，用于表述顶点是否和场景有接触。（简化了SMPL-X模型的顶点/面片数量，以方便计算）接触信息的计算方法为：如果某个顶点距离场景物体过近（低于某个值）则为1，即接触，否则为0，即未接触。</p>
+<h3 id="场景表示"><a class="markdownIt-Anchor" href="#场景表示"></a> 场景表示</h3>
+<p>场景被表示为物品实体的集合。每个物品被表示为8192个点的点云集合，每个点包括9维信息：位置、颜色和法线方向。如此表示是为了通用性，与以往方法将场景物体分类表示为独热码区分开来。</p>
+<h3 id="交互表示"><a class="markdownIt-Anchor" href="#交互表示"></a> 交互表示</h3>
+<p>一个交互包括一个人体信息与一个包含了多个原子交互的集合，因为一种交互动作可能包括了不同部位和不同场景位置的接触。每个原子交互包括一对独热码，分别对应动作和物体，如“坐、椅子”，“触摸、桌子”等等。</p>
+<p>注：这里的“桌子”和“椅子”不是泛指所有，而是作者直接在场景中为每个物体定义了一个独热码，在这种交互信息输入中直接指定，要和哪一个物体进行交互。因此后文中网络结构里可以直接将动作独热码和对应的物体进行对应。</p>
+<h2 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h2>
+<h3 id="总览"><a class="markdownIt-Anchor" href="#总览"></a> 总览</h3>
+<p>生成的输入是若干个如上文一样动作和物体对，如“坐、椅子”+“触摸、桌子”等。生成的输出是人体的骨骼动作。</p>
+<p>生成被分为两个部分，首先根据场景信息和交互信息，在场景中生成一个合适的骨盆位置和朝向，这是第一次生成。其次再将场景信息转换为骨盆的局部坐标系信息后，进行第二次生成，生成人体的具体动作信息。两次生成都是由一种基于transformer的cVAE网络完成，分别叫PelvisVAE和BodyVAE。</p>
+<h3 id="网络细节"><a class="markdownIt-Anchor" href="#网络细节"></a> 网络细节</h3>
+<p>首先来看网络的场景信息输入。场景中的每个物体被表示为前文所述8192个点的点云后，输入一个PointNet++（一个将大量点的信息进行编码抽象，取出其中重要信息的网络，可学习）后得到256个点组成的点云。之后，将和物体相关的动作作为（可学习的）embedding嵌入到这256个点的信息中。</p>
+<p>PointNet++抽象过程：8192*(3+6) -&gt; 1024*(3+96) -&gt; 256*(3+256) -&gt; 256*D，前两个是经过集合抽象层，第三个则是一个线性层，将抽象出来的信息编码为transformer需要的D维输入向量。</p>
+<p>而人体信息输入则就是简单的将前述由三种信息组成的人体表示加上由顶点索引决定的positional embedding后，通过一个线性层映射到指定的输入维度，和上述场景信息一同输入到Encoder中。</p>
+<p>上述信息会被输入到一个四层的transformer-encoder中，得到输入交互预测出的隐空间，将隐空间信息和与人体信息相关的模板信息（加上positional embedding）一同输入到transformer-decoder当中，得到所预测的身体表示。其中BodyVAE最后输出的结果会经过一个包含六个线性层+残差链接的MLP得到最终输出的SMPL-X身体表示。</p>
+<h3 id="loss"><a class="markdownIt-Anchor" href="#loss"></a> Loss</h3>
+<p>PelvisVAE的Loss包括位置和朝向和Loss加上KL Loss（见后）。</p>
+<p>BodyVAE的Loss由以下这些部分组成：</p>
+<h4 id="交互loss"><a class="markdownIt-Anchor" href="#交互loss"></a> 交互Loss</h4>
+<p>交互Loss包括对身体655个顶点每个点的如下计算的求和：</p>
+<p>对于每一个点，计算该点和交互对应的物体的所有点的最小距离。</p>
+<p>即，该Loss鼓励身体每一个顶点都与交互对应物体（的任意位置）有零距离接触。</p>
+<h4 id="mesh重建loss"><a class="markdownIt-Anchor" href="#mesh重建loss"></a> mesh重建Loss</h4>
+<p>mesh重建Loss用于使重建所得的人体更加真实，由以下几个项组成：顶点坐标Loss判断顶点坐标变化、法线Loss判断法线角度变化、边长Loss判断每个面片的各边长度变化、正常一致性Loss用于使相邻面的法线变化更加平滑。</p>
+<h4 id="接触特征重建loss"><a class="markdownIt-Anchor" href="#接触特征重建loss"></a> 接触特征重建Loss</h4>
+<p>用于表达接触特征是否有被正常重建，通过计算生成所得人体各个顶点的0/1接触特征和应有的0/1接触特征这两个向量之间的BCE值得到。</p>
+<h4 id="kl-loss"><a class="markdownIt-Anchor" href="#kl-loss"></a> KL Loss</h4>
+<p>通过将Loss中加入 <a href="https://blog.csdn.net/wr1997/article/details/115255712">KL散度</a> 来避免后验失效问题。该KL散度经过一个Charbonnier函数。</p>
+<h4 id="smpl-x回归loss"><a class="markdownIt-Anchor" href="#smpl-x回归loss"></a> SMPL-X回归Loss</h4>
+<p>包括了SMPL-X身体参数对应预测值和真实值相减的L2范数，加上映射为网格顶点的SMPL-X模型对应预测值和真实值的差值的模长。</p>
+<h3 id="组合式骨盆生成"><a class="markdownIt-Anchor" href="#组合式骨盆生成"></a> 组合式骨盆生成</h3>
+<p>这里通过一些计算和训练方式实现了不需要组合式交互数据训练的组合式动作生成。首先是骨盆生成。前述的网络能够对每对交互任务中最后的骨盆生成任务输出一个骨盆位置的概率分布，而对组合式生成任务，本文通过实现如下的一个优化过程实现对多个交互任务的骨盆位置生成：对每个交互任务，保证其得到的生成结果概率尽量大的同时，使得多个生成结果的骨盆位置尽可能接近。再将如此得到的每个交互生成的骨盆位置取均值，即为最终的组合式骨盆生成位置。</p>
+<h3 id="组合式身体生成"><a class="markdownIt-Anchor" href="#组合式身体生成"></a> 组合式身体生成</h3>
+<p>一个交互动作往往不需要用到全身所有位置与目标物体的接触。因此本文将全身分为上肢、下肢和躯干三个部分，同时对于每个动作，计算这个动作对于每个身体部分的发生接触的概率，概率被表示为该动作对应所有接触的顶点数量中位于某个部位的顶点数量占比。如果某个动作在某个部位的接触概率显著大于其他动作，则将其他动作在该部位的注意力设置为0。</p>
 ]]></content>
       <categories>
-        <category>CO</category>
+        <category>VR</category>
       </categories>
       <tags>
-        <tag>Arch</tag>
-        <tag>CO</tag>
+        <tag>VR</tag>
+        <tag>ML</tag>
       </tags>
   </entry>
   <entry>
@@ -3399,55 +2815,50 @@
       </tags>
   </entry>
   <entry>
-    <title>COINS Essay Note</title>
-    <url>/2023/07/05/COINS-Essay-Note/</url>
-    <content><![CDATA[<p>Compositional Human-Scene Interaction Synthesis with Semantic Control</p>
-<p>实现了一种通过高级语义规范生成给定3D场景中的人物动作的方法，比如“坐在椅子上”等。支持人物与3D环境的自然交互，支持多种交互的组合，通过扩展PROX数据集对比现有方法实现了更好的效果。</p>
-<p>语义示例：躺在沙发上、坐在桌子上、摸椅子、躺在椅子上、坐在地板上、摸床、坐在柜子上且摸床、站在地板上且摸显示器、站在地板上且摸桌子等。（不需要额外训练就能支持多种要求的组合）</p>
-<p>关注重点：<strong>语义、交互、动作生成、动作组合</strong></p>
-<h2 id="计算预设"><a class="markdownIt-Anchor" href="#计算预设"></a> 计算预设</h2>
-<h3 id="人体表示"><a class="markdownIt-Anchor" href="#人体表示"></a> 人体表示</h3>
-<p>使用SMPL-X模型表示，一个人被表示为顶点、面片和接触信息的集合。具体来说，存储了655个顶点的坐标、1296个面片的对应三顶点的编号、655个0/1接触特征，用于表述顶点是否和场景有接触。（简化了SMPL-X模型的顶点/面片数量，以方便计算）接触信息的计算方法为：如果某个顶点距离场景物体过近（低于某个值）则为1，即接触，否则为0，即未接触。</p>
-<h3 id="场景表示"><a class="markdownIt-Anchor" href="#场景表示"></a> 场景表示</h3>
-<p>场景被表示为物品实体的集合。每个物品被表示为8192个点的点云集合，每个点包括9维信息：位置、颜色和法线方向。如此表示是为了通用性，与以往方法将场景物体分类表示为独热码区分开来。</p>
-<h3 id="交互表示"><a class="markdownIt-Anchor" href="#交互表示"></a> 交互表示</h3>
-<p>一个交互包括一个人体信息与一个包含了多个原子交互的集合，因为一种交互动作可能包括了不同部位和不同场景位置的接触。每个原子交互包括一对独热码，分别对应动作和物体，如“坐、椅子”，“触摸、桌子”等等。</p>
-<p>注：这里的“桌子”和“椅子”不是泛指所有，而是作者直接在场景中为每个物体定义了一个独热码，在这种交互信息输入中直接指定，要和哪一个物体进行交互。因此后文中网络结构里可以直接将动作独热码和对应的物体进行对应。</p>
-<h2 id="动作生成"><a class="markdownIt-Anchor" href="#动作生成"></a> 动作生成</h2>
-<h3 id="总览"><a class="markdownIt-Anchor" href="#总览"></a> 总览</h3>
-<p>生成的输入是若干个如上文一样动作和物体对，如“坐、椅子”+“触摸、桌子”等。生成的输出是人体的骨骼动作。</p>
-<p>生成被分为两个部分，首先根据场景信息和交互信息，在场景中生成一个合适的骨盆位置和朝向，这是第一次生成。其次再将场景信息转换为骨盆的局部坐标系信息后，进行第二次生成，生成人体的具体动作信息。两次生成都是由一种基于transformer的cVAE网络完成，分别叫PelvisVAE和BodyVAE。</p>
-<h3 id="网络细节"><a class="markdownIt-Anchor" href="#网络细节"></a> 网络细节</h3>
-<p>首先来看网络的场景信息输入。场景中的每个物体被表示为前文所述8192个点的点云后，输入一个PointNet++（一个将大量点的信息进行编码抽象，取出其中重要信息的网络，可学习）后得到256个点组成的点云。之后，将和物体相关的动作作为（可学习的）embedding嵌入到这256个点的信息中。</p>
-<p>PointNet++抽象过程：8192*(3+6) -&gt; 1024*(3+96) -&gt; 256*(3+256) -&gt; 256*D，前两个是经过集合抽象层，第三个则是一个线性层，将抽象出来的信息编码为transformer需要的D维输入向量。</p>
-<p>而人体信息输入则就是简单的将前述由三种信息组成的人体表示加上由顶点索引决定的positional embedding后，通过一个线性层映射到指定的输入维度，和上述场景信息一同输入到Encoder中。</p>
-<p>上述信息会被输入到一个四层的transformer-encoder中，得到输入交互预测出的隐空间，将隐空间信息和与人体信息相关的模板信息（加上positional embedding）一同输入到transformer-decoder当中，得到所预测的身体表示。其中BodyVAE最后输出的结果会经过一个包含六个线性层+残差链接的MLP得到最终输出的SMPL-X身体表示。</p>
-<h3 id="loss"><a class="markdownIt-Anchor" href="#loss"></a> Loss</h3>
-<p>PelvisVAE的Loss包括位置和朝向和Loss加上KL Loss（见后）。</p>
-<p>BodyVAE的Loss由以下这些部分组成：</p>
-<h4 id="交互loss"><a class="markdownIt-Anchor" href="#交互loss"></a> 交互Loss</h4>
-<p>交互Loss包括对身体655个顶点每个点的如下计算的求和：</p>
-<p>对于每一个点，计算该点和交互对应的物体的所有点的最小距离。</p>
-<p>即，该Loss鼓励身体每一个顶点都与交互对应物体（的任意位置）有零距离接触。</p>
-<h4 id="mesh重建loss"><a class="markdownIt-Anchor" href="#mesh重建loss"></a> mesh重建Loss</h4>
-<p>mesh重建Loss用于使重建所得的人体更加真实，由以下几个项组成：顶点坐标Loss判断顶点坐标变化、法线Loss判断法线角度变化、边长Loss判断每个面片的各边长度变化、正常一致性Loss用于使相邻面的法线变化更加平滑。</p>
-<h4 id="接触特征重建loss"><a class="markdownIt-Anchor" href="#接触特征重建loss"></a> 接触特征重建Loss</h4>
-<p>用于表达接触特征是否有被正常重建，通过计算生成所得人体各个顶点的0/1接触特征和应有的0/1接触特征这两个向量之间的BCE值得到。</p>
-<h4 id="kl-loss"><a class="markdownIt-Anchor" href="#kl-loss"></a> KL Loss</h4>
-<p>通过将Loss中加入 <a href="https://blog.csdn.net/wr1997/article/details/115255712">KL散度</a> 来避免后验失效问题。该KL散度经过一个Charbonnier函数。</p>
-<h4 id="smpl-x回归loss"><a class="markdownIt-Anchor" href="#smpl-x回归loss"></a> SMPL-X回归Loss</h4>
-<p>包括了SMPL-X身体参数对应预测值和真实值相减的L2范数，加上映射为网格顶点的SMPL-X模型对应预测值和真实值的差值的模长。</p>
-<h3 id="组合式骨盆生成"><a class="markdownIt-Anchor" href="#组合式骨盆生成"></a> 组合式骨盆生成</h3>
-<p>这里通过一些计算和训练方式实现了不需要组合式交互数据训练的组合式动作生成。首先是骨盆生成。前述的网络能够对每对交互任务中最后的骨盆生成任务输出一个骨盆位置的概率分布，而对组合式生成任务，本文通过实现如下的一个优化过程实现对多个交互任务的骨盆位置生成：对每个交互任务，保证其得到的生成结果概率尽量大的同时，使得多个生成结果的骨盆位置尽可能接近。再将如此得到的每个交互生成的骨盆位置取均值，即为最终的组合式骨盆生成位置。</p>
-<h3 id="组合式身体生成"><a class="markdownIt-Anchor" href="#组合式身体生成"></a> 组合式身体生成</h3>
-<p>一个交互动作往往不需要用到全身所有位置与目标物体的接触。因此本文将全身分为上肢、下肢和躯干三个部分，同时对于每个动作，计算这个动作对于每个身体部分的发生接触的概率，概率被表示为该动作对应所有接触的顶点数量中位于某个部位的顶点数量占比。如果某个动作在某个部位的接触概率显著大于其他动作，则将其他动作在该部位的注意力设置为0。</p>
+    <title>CUDA 笔记</title>
+    <url>/2024/04/02/CUDA/</url>
+    <content><![CDATA[<h2 id="简介"><a class="markdownIt-Anchor" href="#简介"></a> 简介</h2>
+<p><strong>Compute Unified Device Architecture (CUDA)</strong> 是由 NVIDIA 开发的并行计算平台和编程模型。它使开发人员能够使用 CUDA-C 编写程序，利用 CUDA 架构的 NVIDIA GPU 加速应用程序的运行。简单来说，就是利用 GPU 的并行计算能力来加速计算。</p>
+<p>本文主要记录一些笔者在学习 CUDA 编程过程中的杂项记录。</p>
+<p>需要注意，对于 GPU 编程而言，一般通过 host 和 device 区分 CPU 和 GPU，即后文若有提到，则 host 指 CPU，device 指 GPU。</p>
+<h2 id="cuda-gpu-软件结构"><a class="markdownIt-Anchor" href="#cuda-gpu-软件结构"></a> CUDA GPU 软件结构</h2>
+<p>引用一张并不如何美观的图片来解释 CUDA 编程结构：由三部分组成，分别是 Grid、Block 和 Thread。中文翻译是网格、块和线程——不过作为指代 GPU 结构的名词，为保证不和其他概念如 OS 中的线程混淆，可能还是用英文表达更合适。</p>
+<p><img src="https://pic2.zhimg.com/80/v2-23d684f165319d30eb7fb4d0b669f055_1440w.webp" alt="CUDA GPU 软件结构" /></p>
+<p>调用任何的 CUDA 核函数（即运行在 GPU 上的函数）都需要指定要在“多少 Block，多少 Thread”上运行，调用格式如下：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function">dim3 <span class="title">gridDim</span><span class="params">(<span class="number">2</span>, <span class="number">2</span>, <span class="number">1</span>)</span></span>; <span class="comment">// 一个 Grid 包含 2x2 个 Block</span></span><br><span class="line"><span class="function">dim3 <span class="title">blockDim</span><span class="params">(<span class="number">4</span>, <span class="number">4</span>, <span class="number">1</span>)</span></span>; <span class="comment">// 一个 Block 包含 4x4 个 Thread</span></span><br><span class="line">kernel&lt;&lt;&lt;gridDim, blockDim&gt;&gt;&gt;(args); <span class="comment">// 调用 kernel 函数</span></span><br></pre></td></tr></table></figure>
+<p>注意到这里传入了两个 <code>dim3</code> 类型的变量，分别指定了 Grid 和 Block 的大小。这里我们指定大小可以用一维、二维或三维的方式，比如 <code>dim3(2, 2, 1)</code> 和 <code>dim3(4, 4, 1)</code> 可以等价地写成 <code>dim3(2, 2)</code> 和 <code>dim3(4, 4)</code>。这里的 <code>&lt;&lt;&lt;&gt;&gt;&gt;</code> 语法是 CUDA 中的特有的调用核函数的语法，用来指定 Grid 和 Block 的大小。</p>
+<p>那么，什么是核函数呢？简单来说，就是运行在 GPU 上的函数。为了区分代码中哪些函数是运行在 CPU 上，哪些是运行在 GPU 上，CUDA 中使用关键字来修饰运行在 GPU 上的函数，包括 <code>__global__</code>、<code>__device__</code> 和 <code>__host__</code>。其中 <code>__host__</code> 就是运行在 CPU 上的函数（如果函数声明不额外添加关键字，也会被默认当成 <code>__host__</code> 函数），显然，能调用 <code>__host__</code> 函数的只有同类型的 <code>__host__</code> 函数。<code>__device__</code> 和 <code>__global__</code> 是运行在 GPU 上的函数，其中 <code>__device__</code> 函数只能被 GPU 上的两种函数调用，而 <code>__global__</code> 函数可以被 <code>__host__</code> 函数通过传递运行时参数的方式调用。这里的 <code>__global__</code> 函数就是我们通常所说的核函数。</p>
+<p>此外，对于 sm_50 以上的计算能力的 GPU，CUDA 支持 <code>__device__</code> 函数的递归（在此之前都是直接内联）。而 <code>__device__</code> 和 <code>__global__</code> 函数都可以继续通过传递运行时参数的方式调用 <code>__global__</code> 函数，实现某种多级并行。综合来说，如下图所示：</p>
+<p><img src="https://pic3.zhimg.com/80/v2-64f88082c2f8072da3597e0029297b72_1440w.webp" alt="CUDA 函数调用关系" /></p>
+<h2 id="cuda-gpu-硬件架构"><a class="markdownIt-Anchor" href="#cuda-gpu-硬件架构"></a> CUDA GPU 硬件架构</h2>
+<p>一个 GPU 由多个 SM（Streaming Multiprocessor）组成，每个 SM 包含多个 SP（Streaming Processor）。形象化解释的话，SM 是一个工人小组，SP 则是单个工人。具体的指令和任务都是一个 SP 一次执行一条，也可以将 SP 理解为一个丐版 CPU 核心。一个 SM 有一定数量的寄存器和 shared 内存，前者和 CPU 的寄存器相同，后者相当于仅供 SM 内部读写的高速内存（相对应的还有更慢的 global 内存，也是大家通常说的显存，其对所有 SM 都可见）。如下图为一个 SM 的基本组成：</p>
+<p><img src="https://pic2.zhimg.com/80/v2-e51fe81b6f8808158b58e895cc4d3e09_1440w.webp" alt="CUDA SM 架构" /></p>
+<p>一个 SP 可以执行一个 thread，而若干个（目前是 32 个，不排除以后 NVIDIA 会改） threads 组成一个 warp，由 SM 的 warp scheduler 负责调度。一个 SM 同时可以执行多个 warp，是调度和运行的基本单元（有点类似于进程）。</p>
+<p>对于一个 warp 中的 32 个 threads（我们目前认为他 32 个），它们的执行是 SIMT（Single Instruction Multiple Thread）的，即同一个指令同时作用于这 32 个 threads，但是每个 thread 的数据不同。对于一些控制流语句如 if，else 等，不同的 threads 如果需要进入不同的分支，那么 warp 只能够走其中一条分支，将剩余的 threads 暂时阻塞，这就叫 warp divergence，十分影响性能，如下图：</p>
+<p><img src="https://images0.cnblogs.com/blog2015/657339/201505/302345505481188.png" alt="CUDA warp divergence" /></p>
+<p>为了减少这种情况发生，提升性能，一种方法是保证同一个 warp 内的 threads 走同一个方向。比如一个分支决定条件是 <code>tid % 2 == 0</code>，那么可以改成 <code>(tid &gt;&gt; 5) &amp; 1 == 0</code>，这样就保证了同一个 warp 内的 threads 都走同一个分支。不过由于 NVIDIA 的工程师也很聪明，很多时候 nvcc 也会自动帮我们完成类似的优化。</p>
+<p>对于一个 warp 而言，其上下文包括三个部分：PC（指令计数器），寄存器和 shared 内存。其中 PC 含义和 CPU 中的 PC 含义相同。<strong>需要注意的是，对于 warp 而言，上下文切换是没有消耗的，因为所有的 warp 的寄存器和 shared 内存都同时存在于 SM 中，因此切换 warp 的上下文只需要改变 PC 即可，不需要保存和恢复寄存器和 shared 内存。</strong></p>
+<p>在一个 block 中有多个 warp，如果硬件资源满足要求，就会将 warp 送入 SM 中执行。由于 threads 的调度以 warp 为单位，因此它们不一定是同步的。如果需要对 threads 进行同步，可以使用 <code>__syncthreads()</code> 函数，它会阻塞当前 warp 中的 threads，直到所有 threads 都到达这个函数，然后再继续执行。需要注意的是，这个函数只能在同一个 block 中的 threads 之间同步，不同 block 之间的 threads 无法通过这个函数同步。</p>
+<h2 id="cuda-内存管理"><a class="markdownIt-Anchor" href="#cuda-内存管理"></a> CUDA 内存管理</h2>
+<p>在 CUDA 编程中，我们需要显式管理各个变量存储位置是主存还是显存。首先，声明在 <code>__host__</code> 函数中的变量只能存储在主存中。然后对于不添加关键字的全局变量，同样存储在主存中。如果想将全局变量存储在 GPU 上，需要加上 <code>__device__</code> 或 <code>__constant__</code> 关键字。两者均存储在 GPU 的高速内存中，但后者作为常量，可以被放在高速缓存中，提升 GPU 对其的读取效率。需要注意的是，<code>__constant__</code> 并不是真正的常量，它的值可以被 host 修改，只是对于 GPU 而言，它是只读的。对这两个关键字声明的全局变量，需要通过 <code>cudaMemcpyToSymbol()</code> 和 <code>cudaMemcpyFromSymbol()</code> 函数来在 host 和 device 之间传递数据。此外，CUDA 还提供了 <code>__shared__</code> 关键字，用来声明存储在 GPU 的共享内存中的变量，这个关键字只能在 <code>__global__</code> 或 <code>__device__</code> 函数中使用，用来在同一个 Block 中的 Thread 之间共享数据，速度快于前面两种内存，但容量很小。需要注意的是，对于在核函数中声明的，未标注 <code>__device__</code> 的变量，它们一般会被存储在寄存器中。</p>
+<p>同时，也可以通过 <code>cudaMalloc()</code> 和 <code>cudaFree()</code> 函数来在 host 和 device 之间传递数据，这两个函数分别用来在 device 上分配内存和释放内存，对于这种方式申请的显存，使用普通的指针记录其地址即可。此外，还有 <code>cudaMemcpy()</code> 函数用来在 host 和 device 之间传递数据，它的参数比较多，可以指定传递的数据大小、传递的方向等。这些函数的返回值均为 <code>cudaError_t</code> 类型，可以通过 <code>cudaGetErrorString()</code> 函数来获取错误信息，一般通过 <code>assert( cudaSuccess == err )</code> 来检查是否出错。这几个函数均为 host 函数，即只能在 <code>__host__</code> 函数中调用。对于在核函数中类似的申请需求，直接调用 <code>malloc()</code> 和 <code>free()</code> 即可，这两个函数会在 device 上分配内存，但是需要注意，这两个函数的返回值是 <code>void*</code> 类型，需要强制转换为对应的类型。</p>
+<blockquote>
+<p>对于 device 的内存传递，有的代码会采用将指针转 <code>float4</code> 类型的方式来传递。这个类型代表了 4 个 <code>float</code> 类型的数据放在一起，因此通过 <code>reintepret_cast&lt;float4*&gt;(ptr)</code> 来转换指针再进行数据传递的话，就可以通过<em>可能</em>更快的向量化指令来进行数据传递。</p>
+</blockquote>
+<h2 id="bank-conflict"><a class="markdownIt-Anchor" href="#bank-conflict"></a> Bank Conflict</h2>
+<p>首先，在 CUDA 中，shared 内存能够被一个 warp 中的所有线程访问。其中 shared 内存以 bank 的形式分层组织。具体如下图所示。每个 warp 有 32 个 threads，因此 shared 内存也被分为了 32 个 bank。一个 bank 一层的大小为 4Byte = 32bit。而实际的数据先连续的分成 32 * 4Byte 大小的层，每层再划分给 32 个 bank。因此如果每个 thread 每次读写 shared 内存能够恰好读取这 32 个 bank，那么将能够做到同时读取。</p>
+<p><img src="https://pic1.zhimg.com/80/v2-7cb74504a5c7b81130bc6ad4d562220c_1440w.webp" alt="CUDA shared 内存分层组织" /></p>
+<p>Bank confict 指的就是当多个 thread 同时读写同一个 bank 的情况。如下图左侧无 bank conflict，中间每两个 thread 读写同一个 bank 则有 bank conflict，右边虽然映射比较乱但是没有 bank conflict。</p>
+<p><img src="https://pic3.zhimg.com/80/v2-bda838be655464250983e4b723c2f1be_1440w.webp" alt="CUDA bank conflict" /></p>
+<p>实际实现中，对于 bank conflict 即多个 thread 读写同一个 bank 的情况，warp 会将这些操作串行化从而导致性能降低。具体来说，当多个 thread 同时读一个 bank 时，会变成顺序读取（新版本中变为一个 thread 读取然后 broadcast 到其余 thread）。而当多个 thread 同时写一个 bank 时，会随机一个 thread 成功。</p>
+<p>因此在进行核函数编写时，需要尽量保证对 shared 内存的访问是连续映射的，或保证各个 thread 访问的 shared 内存地址模 32 互相不同余。</p>
 ]]></content>
       <categories>
-        <category>VR</category>
+        <category>HPC</category>
       </categories>
       <tags>
-        <tag>VR</tag>
-        <tag>ML</tag>
+        <tag>HPC</tag>
+        <tag>CUDA</tag>
       </tags>
   </entry>
   <entry>
@@ -3755,6 +3166,57 @@ arima、机器学习、灰色预测、问卷分析、相关分析、差异分析
       </tags>
   </entry>
   <entry>
+    <title>数学建模国赛注意事项</title>
+    <url>/2023/09/06/CUMCM-5/</url>
+    <content><![CDATA[<h2 id="基本知识"><a class="markdownIt-Anchor" href="#基本知识"></a> 基本知识</h2>
+<p><strong>全国大学生数学建模比赛是所有国内大学生学科竞赛里规模最大的</strong>：含金量高，认可度高，竞争激烈。</p>
+<p>竞赛时间：9/7 18:00 ~ 9/10 20:00</p>
+<p>9/10 20:00 前需要生成一次 MD5 并选题。9/10 20:00-22:00 之间仍可修改一次 MD5。</p>
+<p>一个注意点是在传了MD5之后，不要再对文件进行打开操作，一定要对设了MD5的文件复制一份副本。</p>
+<p>注意查重：不要复制粘贴其他文献内容、网络上的内容、题目内容等。</p>
+<p>注意不要在论文中和文件名中涉及个人/学校相关信息。</p>
+<p>论文电子版中不允许包含承诺书。</p>
+<p>不要在论文中出现含水印的图片。</p>
+<p>不要把自己的论文放到网上查重。</p>
+<h2 id="获奖指南"><a class="markdownIt-Anchor" href="#获奖指南"></a> 获奖指南</h2>
+<ul>
+<li>思路</li>
+<li>分析</li>
+<li>界面</li>
+</ul>
+<h2 id="论文书写"><a class="markdownIt-Anchor" href="#论文书写"></a> 论文书写</h2>
+<p><strong>摘要最重要</strong></p>
+<ul>
+<li>不要求提交纸质版（系统里上传一份+上交给学校一份，都需要是MD5码相同的文件），北京赛区不要求纸质版，如果晋级到国家级会统一打印。</li>
+<li>注意电子版从摘要页开始，不包含承诺书。</li>
+<li>摘要不需要翻译成英文。</li>
+<li>论文页码从摘要页（“1”）开始。</li>
+<li>不需要目录。</li>
+<li>论文大小不超过20MB。一般大小太大了，压缩一下图片即可。</li>
+<li>页数不做强制性要求。一般正文在20页左右，可以多。</li>
+<li>正文后为附录内容，页数不限，与正文一同提交。附录部分需要附有<strong>全部</strong>的原始程序（包括用于绘图的程序）（用Excel公式或者别的什么非编程的方式也尽量在附录中展示，相对多一些会更好）。</li>
+<li><strong>所有引用他人或公开资料的成果必须按照科技论文规范列出参考文献，并在正文引用处标注</strong>。</li>
+<li>支撑材料：可运行源程序、数据资料、赛题要求的结果、较大篇幅中间结果的图表等，压缩包大小不超过20MB，rar或zip格式。尽量一定要提交支撑材料。</li>
+<li>论文和支撑材料两个文件的MD5码尽量同时上传同时生成。</li>
+<li>具体的书写要求参考试题文件夹中的论文书写要求“format2023”，上文仅作参考，以要求文件为准。</li>
+</ul>
+<p>美观相关：</p>
+<ul>
+<li>各级标题区分明显</li>
+<li>多一点示意图（思路图、模型算法示意图、结果展示图）</li>
+<li>黑箱模型、启发式算法（神经网络、机器学习、遗传算法）不要优先选择，作为保底方法</li>
+<li>优缺点分析中，优点多说，缺点酌情</li>
+</ul>
+]]></content>
+      <categories>
+        <category>数模</category>
+      </categories>
+      <tags>
+        <tag>CUMCM</tag>
+        <tag>Math</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>数学建模国赛算法整理-2</title>
     <url>/2023/09/06/CUMCM-4/</url>
     <content><![CDATA[<h2 id="实验设计"><a class="markdownIt-Anchor" href="#实验设计"></a> 实验设计</h2>
@@ -3974,57 +3436,6 @@ c-16-25.333-24-45-24-59z'/></svg></span></span></span></span></span></span></spa
       </tags>
   </entry>
   <entry>
-    <title>数学建模国赛注意事项</title>
-    <url>/2023/09/06/CUMCM-5/</url>
-    <content><![CDATA[<h2 id="基本知识"><a class="markdownIt-Anchor" href="#基本知识"></a> 基本知识</h2>
-<p><strong>全国大学生数学建模比赛是所有国内大学生学科竞赛里规模最大的</strong>：含金量高，认可度高，竞争激烈。</p>
-<p>竞赛时间：9/7 18:00 ~ 9/10 20:00</p>
-<p>9/10 20:00 前需要生成一次 MD5 并选题。9/10 20:00-22:00 之间仍可修改一次 MD5。</p>
-<p>一个注意点是在传了MD5之后，不要再对文件进行打开操作，一定要对设了MD5的文件复制一份副本。</p>
-<p>注意查重：不要复制粘贴其他文献内容、网络上的内容、题目内容等。</p>
-<p>注意不要在论文中和文件名中涉及个人/学校相关信息。</p>
-<p>论文电子版中不允许包含承诺书。</p>
-<p>不要在论文中出现含水印的图片。</p>
-<p>不要把自己的论文放到网上查重。</p>
-<h2 id="获奖指南"><a class="markdownIt-Anchor" href="#获奖指南"></a> 获奖指南</h2>
-<ul>
-<li>思路</li>
-<li>分析</li>
-<li>界面</li>
-</ul>
-<h2 id="论文书写"><a class="markdownIt-Anchor" href="#论文书写"></a> 论文书写</h2>
-<p><strong>摘要最重要</strong></p>
-<ul>
-<li>不要求提交纸质版（系统里上传一份+上交给学校一份，都需要是MD5码相同的文件），北京赛区不要求纸质版，如果晋级到国家级会统一打印。</li>
-<li>注意电子版从摘要页开始，不包含承诺书。</li>
-<li>摘要不需要翻译成英文。</li>
-<li>论文页码从摘要页（“1”）开始。</li>
-<li>不需要目录。</li>
-<li>论文大小不超过20MB。一般大小太大了，压缩一下图片即可。</li>
-<li>页数不做强制性要求。一般正文在20页左右，可以多。</li>
-<li>正文后为附录内容，页数不限，与正文一同提交。附录部分需要附有<strong>全部</strong>的原始程序（包括用于绘图的程序）（用Excel公式或者别的什么非编程的方式也尽量在附录中展示，相对多一些会更好）。</li>
-<li><strong>所有引用他人或公开资料的成果必须按照科技论文规范列出参考文献，并在正文引用处标注</strong>。</li>
-<li>支撑材料：可运行源程序、数据资料、赛题要求的结果、较大篇幅中间结果的图表等，压缩包大小不超过20MB，rar或zip格式。尽量一定要提交支撑材料。</li>
-<li>论文和支撑材料两个文件的MD5码尽量同时上传同时生成。</li>
-<li>具体的书写要求参考试题文件夹中的论文书写要求“format2023”，上文仅作参考，以要求文件为准。</li>
-</ul>
-<p>美观相关：</p>
-<ul>
-<li>各级标题区分明显</li>
-<li>多一点示意图（思路图、模型算法示意图、结果展示图）</li>
-<li>黑箱模型、启发式算法（神经网络、机器学习、遗传算法）不要优先选择，作为保底方法</li>
-<li>优缺点分析中，优点多说，缺点酌情</li>
-</ul>
-]]></content>
-      <categories>
-        <category>数模</category>
-      </categories>
-      <tags>
-        <tag>CUMCM</tag>
-        <tag>Math</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>数学建模2019、20、22题目简析</title>
     <url>/2023/09/06/CUMCM-6/</url>
     <content><![CDATA[<h2 id="2019-cumcm"><a class="markdownIt-Anchor" href="#2019-cumcm"></a> 2019-CUMCM</h2>
@@ -4096,37 +3507,46 @@ c-16-25.333-24-45-24-59z'/></svg></span></span></span></span></span></span></spa
       </tags>
   </entry>
   <entry>
-    <title>编译后端笔记-图着色法-1</title>
-    <url>/2023/07/11/Compiler-Notes-1/</url>
-    <content><![CDATA[<h2 id="图着色法-细节"><a class="markdownIt-Anchor" href="#图着色法-细节"></a> 图着色法-细节</h2>
-<h3 id="函数活跃寄存器计算"><a class="markdownIt-Anchor" href="#函数活跃寄存器计算"></a> 函数活跃寄存器计算</h3>
-<p>这部分内容简单来说，就是对每个函数计算其各个基本块的活跃出入寄存器，也就是进入和离开基本块时，需要保持活跃（其值有意义/有用）的寄存器。</p>
-<p>首先，我们遍历每个基本块，先计算其内部的依赖关系。简便起见use，我们倒序遍历基本块内的指令，并维护两个集合：def 和 live_use，分别代表“该基本块中新定义了的寄存器”与“该基本块中未定义但使用了其值的寄存器”，注意这里定义实际上指的是重新赋值。然后，在遍历过程中，对每一条指令，如果该指令为寄存器赋值（即对于该指令的 dst 寄存器），则该寄存器在当前位置一定是新定义了的，一定不是未定义但使用的，就从 live_use 中移除，向 def 加入。类似的，如果该指令使用了某寄存器值（即对于该指令的 src 寄存器），则该寄存器在当前位置一定是未定义但被使用，一定不是新定义的，从 def 中移除，向 live_use 中加入。注意到有的指令可能有寄存器同时在 def 和 src 中，由于我们是倒序遍历，因此应该按上述叙述顺序判断并处理。</p>
-<p>这时，容易注意到所有的 live_use 都是满足我们对 live_in 要求的寄存器，因此赋值 live_in = live_use，但是这里的 live_in 还不全，需要后续处理。</p>
-<p>为了处理 live_out，即计算哪些基本块新定义的寄存器是后续需要被使用到的寄存器，我们定义一个队列，存储基本块到寄存器的使用关系，每个 std::pair 代表某个块新定义了某个寄存器。我们将所有当前基本块 live_use 的寄存器和该块一起推入队列。</p>
-<p>然后我们遍历队列，每次取队列头元素，获取当前块和当前块使用（但未定义）的某个寄存器，对于该块的所有前继基本块，如果前继的 live_out 中没有当前这个寄存器，则将其加入。这里需要判断一件事——有可能该寄存器也不是这个块定义的，如果不是，则需要将这个前继块和该寄存器再次推入队列，并为这个块的 live_in 记录下这个寄存器。</p>
-<h3 id="建图"><a class="markdownIt-Anchor" href="#建图"></a> 建图</h3>
-<p>在计算了各个基本块的出入活跃寄存器后，就可以开始建图了。我们使用邻接表存图，具体来说，使用如下的数据结构存储：</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">std::vector&lt;<span class="type">char</span>&gt; appeared;</span><br><span class="line">std::vector&lt;std::set&lt;<span class="type">int</span>&gt;&gt; edges;</span><br></pre></td></tr></table></figure>
-<p>两个动态数组的大小都是寄存器最大值。其中前者是一个记录某寄存器值是否出现在本函数中的布尔值数组，由于一些 C++ 特性，使用 char 类型。后者则是用于存边的，其内层是记录某寄存器和哪个寄存器有连边的集合，使用集合是为了保证不重复处理。</p>
-<p>建图过程中，由于前面我们已经计算了基本块之间的活跃关系，现在我们只需要遍历每一个基本块，处理块内的寄存器活跃关系并连边即可。</p>
-<p>在遍历每个基本块时，我们记录一个动态数组 live，存储“当前”的活跃寄存器，因为我们是对所有指令倒序遍历的，因此该数组的初始值为 live_out，即基本块结束时仍需要活跃的寄存器。</p>
-<p>首先，基本块结束时所有的需要活跃的寄存器一定是互斥的（互相冲突的，不能存储在相同寄存器中的，后同），因此首先需要对它们两两连边。因此我们设置一个空的动态数组 tmp，将所有的 live 中的寄存器推入。</p>
-<p>其次，我们需要将最后一条语句中的 dst 寄存器也推入 tmp 中，保证它和其他 live_out 的寄存器的互斥关系，原因后面解释。</p>
-<p>这时，tmp 中就存下了所有“在基本块结束时”互斥的寄存器，我们对其中的寄存器两两加边即可（注：图是无向图，所有的加边都是双向边）。</p>
-<p>然后就可以开始倒序遍历每条指令了。我们在遍历过程中不断维护 live 数组，具体来说，每当倒序遍历到一条新指令，这条指令如果对某寄存器进行了修改（即对于指令的 dst 寄存器来说），则该 dst 寄存器就不再 live，从 live 中移除。反之，如果使用了某寄存器的值（即对于指令的 src 寄存器来说），则此时（和从此时开始一直往前到该寄存器被定义，即被作为 dst）的这个 src 寄存器，就是活跃的，也就是说其值需要被保留，和其他所有的活跃寄存器互斥，将 src 和所有的 live 中寄存器连边，并将 src 推入 live 即可。</p>
-<p>这样一来，我们就处理好了所有的 src 寄存器之间的互斥关系，但是还需要处理 dst 和 src 之间的互斥关系。注意到：同语句的 src 和 dst 是不互斥的，因为比如 add s0, s0, s1 这种操作（即只要后续不再使用 src 的原值，则完全可以使用相同的 src 和 dst，在人工写汇编时也会常常这么做以实现 += 等效果）但是每一条语句的 dst 和这之后的所有 src （准确来说是所有活跃寄存器）是互斥的，这很容易理解，比如下列语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi %1, %2, 100 // 1</span><br><span class="line">mul %5, %3, %4 // 2</span><br><span class="line">mul %2, %1, %1 // 3</span><br></pre></td></tr></table></figure>
-<p>语句 2 中的 %5 和 %1 应当是互斥的，因为后面还需要用到 %1 的值，如果给 %1 和 %5 分配相同的寄存器，则后续语句 3 时使用 %1 时就得不到正确的值了，因为在语句 2 处被修改了。因此我们对上一句的 dst 寄存器和当前的所有 live 中的寄存器加边，保证其互斥。这里很容易发现，由于这样只能处理到第一条到倒数第二条语句的 dst，因为是对每条语句的“上一条”进行处理，因此最后一条语句的 dst 就没被处理，这也是前述处理最后一条语句 dst 的原因。</p>
-<p>最后，在每条指令开始遍历时新建一个空数组，将所有的当前的新活跃寄存器和上条语句的 dst 一同推入数组，并对数组中的元素两两建边即可。</p>
+    <title>GAParts Essay Note</title>
+    <url>/2023/07/05/GAParts-Essay-Note/</url>
+    <content><![CDATA[<h2 id="pointgroup"><a class="markdownIt-Anchor" href="#pointgroup"></a> PointGroup</h2>
+<p><img src="https://file.notion.so/f/s/137612d2-0f12-409f-9aed-41f834dba168/Untitled.png?id=16fc1a99-6642-4096-9202-6f9950433f8f&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=1hHO-l7iJqN4ITLhp7jzp2elJDPKRqy16dNtt1U5S5c&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<h3 id="backbone-network"><a class="markdownIt-Anchor" href="#backbone-network"></a> Backbone Network</h3>
+<p>场景以点云的形式输入进网络，每个点包括三维坐标和三维颜色信息。</p>
+<p>网络形式是一个U-Net（先对点体素化后，使用稀疏卷积SC和submanifold稀疏卷积SSC进行，得到的结果再从体素化生成回点值形式（Submanifold sparse convolutional networks, 2019）），通过网络后，每个点被提取出K维特征。</p>
+<h3 id="clustering"><a class="markdownIt-Anchor" href="#clustering"></a> Clustering</h3>
+<p>然后再从这K维特征中得到两样东西，（通过一个MLP得到）用于语义分割的一维标签S（同一类的标签值相同）和（通过同类点求位置的均值得到）用于预测目标中心位置的三维向量o（offset），指示对于该点，其所属的分割类的中心的方向。</p>
+<p>由于这种分类让每个点按类聚在一起，就可以根据点聚类之间的空位距离对点进行聚类。</p>
+<p>由于这种offset不总准确，论文将原位置p采得一个聚类结果，再由加上offset的新位置q采得一个聚类结果，将两个结果取并集，输入到ScoreNet中</p>
+<h3 id="score-net"><a class="markdownIt-Anchor" href="#score-net"></a> Score Net</h3>
+<p><img src="https://file.notion.so/f/s/16d54e66-b9dd-4151-8d98-911b5f7cde28/Untitled.png?id=abf52d35-dd50-4038-a2cf-9ecf64c09f2e&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=2Z-VtfRYILtiwq7K4ISo8q4OPvJwrxFGO5pOiXUv13k&amp;downloadName=Untitled.png" alt="Untitled" /></p>
+<p>对于每个聚类，该聚类i的Ni个点先前提取的K维特征信息构成Ni<em>K维聚类特征，位置构成Ni</em>3维位置特征，和之前类似的方法体素化（每个体素特征求平均）后输入SC和SSC的较小U-Net进一步提取特征后经过max-pooling得到一个聚类特征，进而输入MLP后经过Sigmoid函数得到最终分数Si</p>
+<p>最后用先前的聚类信息和得到的分数信息输入NMS输出最终聚类信息。</p>
+<h2 id="grl-gradient-reversal-layer"><a class="markdownIt-Anchor" href="#grl-gradient-reversal-layer"></a> GRL (<em><strong>*Gradient Reversal Layer)*</strong></em></h2>
+<p><img src="https://file.notion.so/f/s/9574a97d-7b95-4aa2-86eb-7811b3f951d9/v2-ebe7d65b70355baed5ca478173fe0695_r.jpg?id=4d40546b-f3ac-47d2-a43e-37c819d75624&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=SHmsYNLKJeJMveQWwixUuNvUyxOEeonKI1qITfD9X3w&amp;downloadName=v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" alt="v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" /></p>
+<h3 id="grl层"><a class="markdownIt-Anchor" href="#grl层"></a> GRL层</h3>
+<p>梯度下降是最小化目标函数，而GRL这一层的目的是“向负方向梯度上升”，其实就是最大化目标函数。</p>
+<h3 id="模型说明"><a class="markdownIt-Anchor" href="#模型说明"></a> 模型说明</h3>
+<p>上图绿色部分是特征提取，对应GAParts就是那个Sparse U-Net，提取特征F用的</p>
+<p>蓝色部分是处理分类任务用的，对应GAParts就是后续的聚类和score模块等</p>
+<p>粉色部分就是重点的domain classifier，是一个域分类器，本质上是一个判别器。</p>
+<h3 id="grl和domain-classifier的意义"><a class="markdownIt-Anchor" href="#grl和domain-classifier的意义"></a> GRL和domain classifier的意义</h3>
+<p>在训练中，绿色部分和粉色部分构成了一种类似GAN的结构，绿色部分作为生成器，粉色部分作为判别器，目标是让生成出来的feature趋于域自适应（域分类器尝试将feature进行分类，如果这种分类越来越难以进行，说明提取出来的feature就是共通的feature，也就趋向于域自适应了）</p>
+<h2 id="gaparts中的domain-invariant-feature-learning"><a class="markdownIt-Anchor" href="#gaparts中的domain-invariant-feature-learning"></a> GAParts中的Domain-invariant Feature Learning</h2>
+<p>总共提出了三种方法，均是对于domain-classifier的改进，用于使模型更加适应不同类型，能准确提取不同物体的特征。</p>
+<h3 id="part-oriented-feature-query"><a class="markdownIt-Anchor" href="#part-oriented-feature-query"></a> Part-oriented Feature Query</h3>
+<p>由于GAParts是对Parts的分类，因此实际上做分类器是对点向不同的结果label（即parts/clusters的编号i）分类。因此采用对于分数大于某阈值s的所有parts，计算分类器对其的loss再求均值的方法</p>
+<h3 id="multi-resolution"><a class="markdownIt-Anchor" href="#multi-resolution"></a> Multi-Resolution</h3>
+<p>由于部件大小不一，为了能适应多种大小，向Domain Classifier输入的feature来自三个不同大小的U-Net层，最后loss取加权总和。这样能让网络适应不同大小的部件。</p>
+<h3 id="distribution-balancing"><a class="markdownIt-Anchor" href="#distribution-balancing"></a> Distribution-Balancing</h3>
+<p>为了能使训练中对于不同类型不同种类的Parts训练成果比较均匀，采用了一种均匀分布的方法，具体来说是对前述Part-oriented Feature Query在求均值前加了一个权重，对于准确率更高的部分，los计算的就更小一些，同时对于域分布量更大的计算的更小一些。</p>
 ]]></content>
       <categories>
-        <category>PL</category>
+        <category>VR</category>
       </categories>
       <tags>
-        <tag>PL</tag>
-        <tag>编译</tag>
-        <tag>编译后端</tag>
+        <tag>VR</tag>
+        <tag>ML</tag>
       </tags>
   </entry>
   <entry>
@@ -4233,101 +3653,6 @@ c-16-25.333-24-45-24-59z'/></svg></span></span></span></span></span></span></spa
       </categories>
       <tags>
         <tag>Nothing</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GAParts Essay Note</title>
-    <url>/2023/07/05/GAParts-Essay-Note/</url>
-    <content><![CDATA[<h2 id="pointgroup"><a class="markdownIt-Anchor" href="#pointgroup"></a> PointGroup</h2>
-<p><img src="https://file.notion.so/f/s/137612d2-0f12-409f-9aed-41f834dba168/Untitled.png?id=16fc1a99-6642-4096-9202-6f9950433f8f&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=1hHO-l7iJqN4ITLhp7jzp2elJDPKRqy16dNtt1U5S5c&amp;downloadName=Untitled.png" alt="Untitled" /></p>
-<h3 id="backbone-network"><a class="markdownIt-Anchor" href="#backbone-network"></a> Backbone Network</h3>
-<p>场景以点云的形式输入进网络，每个点包括三维坐标和三维颜色信息。</p>
-<p>网络形式是一个U-Net（先对点体素化后，使用稀疏卷积SC和submanifold稀疏卷积SSC进行，得到的结果再从体素化生成回点值形式（Submanifold sparse convolutional networks, 2019）），通过网络后，每个点被提取出K维特征。</p>
-<h3 id="clustering"><a class="markdownIt-Anchor" href="#clustering"></a> Clustering</h3>
-<p>然后再从这K维特征中得到两样东西，（通过一个MLP得到）用于语义分割的一维标签S（同一类的标签值相同）和（通过同类点求位置的均值得到）用于预测目标中心位置的三维向量o（offset），指示对于该点，其所属的分割类的中心的方向。</p>
-<p>由于这种分类让每个点按类聚在一起，就可以根据点聚类之间的空位距离对点进行聚类。</p>
-<p>由于这种offset不总准确，论文将原位置p采得一个聚类结果，再由加上offset的新位置q采得一个聚类结果，将两个结果取并集，输入到ScoreNet中</p>
-<h3 id="score-net"><a class="markdownIt-Anchor" href="#score-net"></a> Score Net</h3>
-<p><img src="https://file.notion.so/f/s/16d54e66-b9dd-4151-8d98-911b5f7cde28/Untitled.png?id=abf52d35-dd50-4038-a2cf-9ecf64c09f2e&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=2Z-VtfRYILtiwq7K4ISo8q4OPvJwrxFGO5pOiXUv13k&amp;downloadName=Untitled.png" alt="Untitled" /></p>
-<p>对于每个聚类，该聚类i的Ni个点先前提取的K维特征信息构成Ni<em>K维聚类特征，位置构成Ni</em>3维位置特征，和之前类似的方法体素化（每个体素特征求平均）后输入SC和SSC的较小U-Net进一步提取特征后经过max-pooling得到一个聚类特征，进而输入MLP后经过Sigmoid函数得到最终分数Si</p>
-<p>最后用先前的聚类信息和得到的分数信息输入NMS输出最终聚类信息。</p>
-<h2 id="grl-gradient-reversal-layer"><a class="markdownIt-Anchor" href="#grl-gradient-reversal-layer"></a> GRL (<em><strong>*Gradient Reversal Layer)*</strong></em></h2>
-<p><img src="https://file.notion.so/f/s/9574a97d-7b95-4aa2-86eb-7811b3f951d9/v2-ebe7d65b70355baed5ca478173fe0695_r.jpg?id=4d40546b-f3ac-47d2-a43e-37c819d75624&amp;table=block&amp;spaceId=a4f9675e-1c40-43c1-8a0d-04d994814cf0&amp;expirationTimestamp=1688637600000&amp;signature=SHmsYNLKJeJMveQWwixUuNvUyxOEeonKI1qITfD9X3w&amp;downloadName=v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" alt="v2-ebe7d65b70355baed5ca478173fe0695_r.jpg" /></p>
-<h3 id="grl层"><a class="markdownIt-Anchor" href="#grl层"></a> GRL层</h3>
-<p>梯度下降是最小化目标函数，而GRL这一层的目的是“向负方向梯度上升”，其实就是最大化目标函数。</p>
-<h3 id="模型说明"><a class="markdownIt-Anchor" href="#模型说明"></a> 模型说明</h3>
-<p>上图绿色部分是特征提取，对应GAParts就是那个Sparse U-Net，提取特征F用的</p>
-<p>蓝色部分是处理分类任务用的，对应GAParts就是后续的聚类和score模块等</p>
-<p>粉色部分就是重点的domain classifier，是一个域分类器，本质上是一个判别器。</p>
-<h3 id="grl和domain-classifier的意义"><a class="markdownIt-Anchor" href="#grl和domain-classifier的意义"></a> GRL和domain classifier的意义</h3>
-<p>在训练中，绿色部分和粉色部分构成了一种类似GAN的结构，绿色部分作为生成器，粉色部分作为判别器，目标是让生成出来的feature趋于域自适应（域分类器尝试将feature进行分类，如果这种分类越来越难以进行，说明提取出来的feature就是共通的feature，也就趋向于域自适应了）</p>
-<h2 id="gaparts中的domain-invariant-feature-learning"><a class="markdownIt-Anchor" href="#gaparts中的domain-invariant-feature-learning"></a> GAParts中的Domain-invariant Feature Learning</h2>
-<p>总共提出了三种方法，均是对于domain-classifier的改进，用于使模型更加适应不同类型，能准确提取不同物体的特征。</p>
-<h3 id="part-oriented-feature-query"><a class="markdownIt-Anchor" href="#part-oriented-feature-query"></a> Part-oriented Feature Query</h3>
-<p>由于GAParts是对Parts的分类，因此实际上做分类器是对点向不同的结果label（即parts/clusters的编号i）分类。因此采用对于分数大于某阈值s的所有parts，计算分类器对其的loss再求均值的方法</p>
-<h3 id="multi-resolution"><a class="markdownIt-Anchor" href="#multi-resolution"></a> Multi-Resolution</h3>
-<p>由于部件大小不一，为了能适应多种大小，向Domain Classifier输入的feature来自三个不同大小的U-Net层，最后loss取加权总和。这样能让网络适应不同大小的部件。</p>
-<h3 id="distribution-balancing"><a class="markdownIt-Anchor" href="#distribution-balancing"></a> Distribution-Balancing</h3>
-<p>为了能使训练中对于不同类型不同种类的Parts训练成果比较均匀，采用了一种均匀分布的方法，具体来说是对前述Part-oriented Feature Query在求均值前加了一个权重，对于准确率更高的部分，los计算的就更小一些，同时对于域分布量更大的计算的更小一些。</p>
-]]></content>
-      <categories>
-        <category>VR</category>
-      </categories>
-      <tags>
-        <tag>VR</tag>
-        <tag>ML</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>寄存器分配笔记1</title>
-    <url>/2023/07/09/LLVM-Reg-Alloc-1/</url>
-    <content><![CDATA[<p>有无限多个虚拟寄存器——对应实际CPU中有有限个寄存器。</p>
-<p>寄存器分配前后分别会有两次指令调度</p>
-<p>常见的寄存器分配算法：</p>
-<ul>
-<li>PBQ</li>
-<li>Greedy 运行时间短</li>
-<li>Basic 编译快</li>
-<li>Fast 编译快</li>
-</ul>
-<p>整体流程：</p>
-<p>生命周期分析——权重计算——构造优先队列——分配寄存器——弹出无法分配的寄存器</p>
-<h2 id="生命周期分析"><a class="markdownIt-Anchor" href="#生命周期分析"></a> 生命周期分析</h2>
-<p>可以写成单独的 Pass，是计算每个寄存器的使用生命周期。</p>
-<p>所谓生命周期就是一个寄存器从一次定义到下一次定义前的最后一次使用的周期，如下示例：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">BB1:</span><br><span class="line">%<span class="number">1</span> = <span class="number">23</span>; <span class="comment">// 01</span></span><br><span class="line">%<span class="number">2</span> = %<span class="number">1</span> + <span class="number">2</span>; <span class="comment">// 02</span></span><br><span class="line"><span class="keyword">goto</span> BB2; <span class="comment">// 03</span></span><br><span class="line"></span><br><span class="line">BB2:</span><br><span class="line">... <span class="comment">// 04 - 12</span></span><br><span class="line">%<span class="number">3</span> = %<span class="number">1</span> + <span class="number">1</span>; <span class="comment">// 12</span></span><br><span class="line"><span class="keyword">goto</span> BB3; <span class="comment">// 13</span></span><br><span class="line"></span><br><span class="line">BB3:</span><br><span class="line"><span class="comment">// 14 - 21</span></span><br><span class="line">%<span class="number">4</span> = %<span class="number">3</span> + %<span class="number">2</span>; <span class="comment">// 22</span></span><br><span class="line"><span class="keyword">return</span>; <span class="comment">// 23</span></span><br></pre></td></tr></table></figure>
-<p>每条语句之后的注释标注了其对应的语句编号，则各个变量生命周期如下：</p>
-<p>%1 生命周期从 01 开始，在 BB1 中到 02 结束，在 BB2 中到 12 结束。</p>
-<p>%2 生命周期从 02 开始，在 BB1 中到 02 结束，在 BB3 中到 22 结束。</p>
-<p>%3 生命周期从 12 开始，在 BB2 中到 12 结束，在 BB3 中到 22 结束。</p>
-<p>（生命周期包括：如果单基本块则从定义到最后一次使用，如果跨基本块则在定义基本块中从定义到基本块结束，在其他使用基本块中从开头到最后一次使用）</p>
-<h2 id="权重计算"><a class="markdownIt-Anchor" href="#权重计算"></a> 权重计算</h2>
-<p>计算一个寄存器的<strong>重要程度</strong>，代表它获得寄存器分配的重要权重高低。</p>
-<p>简单的方法包括：如果在一个常用循环中使用则权重高，如果寄存器相关访问少或简单则权重低。生命周期越长，权重越低。</p>
-<p>分配权重：</p>
-<p>如果只在一个基本块使用，权重低。</p>
-<p>在多个基本块都要使用，权重高。</p>
-<p>以<strong>分配权重</strong>大小设优先队列，将各个寄存器入队。</p>
-<h2 id="寄存器分配"><a class="markdownIt-Anchor" href="#寄存器分配"></a> 寄存器分配</h2>
-<p>从优先队列依次取寄存器，分配到物理寄存器。</p>
-<p>分配时参考生命周期冲突，如果没有生命周期冲突则可以共用寄存器。</p>
-<p>每次取寄存器后，如果和当前所有物理寄存器分配的寄存器生命周期都有冲突，则比较前述重要权重（不是分配权重），如果更高则替换掉现有分配的寄存器。</p>
-<p>如果更低，则考虑能否进行拆分，即将生命周期拆分到多个不同的寄存器上，如第一段时4号寄存器空闲，第二段时5号寄存器空闲，则通过第一段分给4号，第二段分给5号，第二段开头插入一个move指令将4号的值复制给5号实现。如果这种拆分有益于速度，则执行拆分。</p>
-<p>实际LLVM操作中不会拆分后直接插入，而是先计算合适的拆分位置，然后进行拆分，拆分后将原有的寄存器拆分为两个不同的寄存器重新放入优先队列，再按前述规则进行出队和插入等操作。</p>
-<h2 id="spill-通过内存周转"><a class="markdownIt-Anchor" href="#spill-通过内存周转"></a> Spill （通过内存周转）</h2>
-<p>将不参与计算时的指令部分加入load/store指令，从而拆分成两个生命周期更短的寄存器，再尝试进行插入。</p>
-<h2 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h2>
-<p>上述LLVM的Greedy分配方法主要关注点在于用最少的物理寄存器来进行分配，这样可以尽可能减少寄存器溢出，但是会有局限性——如果在寄存器足够的情况下，用极可能多的寄存器能够提升并行度，从而提高速度（e.g. 流水线中如果有寄存器依赖可能会降低速度）</p>
-<p>Register Allocatiion for Compressed ISAs in LLVM</p>
-]]></content>
-      <categories>
-        <category>PL</category>
-      </categories>
-      <tags>
-        <tag>PL</tag>
-        <tag>编译</tag>
-        <tag>编译后端</tag>
-        <tag>LLVM</tag>
       </tags>
   </entry>
   <entry>
@@ -4956,48 +4281,6 @@ c-16-25.333-24-45-24-59z'/></svg></span></span></span></span></span></span></spa
       </tags>
   </entry>
   <entry>
-    <title>Hello World!</title>
-    <url>/2023/07/05/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
-<h3 id="create-a-new-post"><a class="markdownIt-Anchor" href="#create-a-new-post"></a> Create a new post</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="run-server"><a class="markdownIt-Anchor" href="#run-server"></a> Run server</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="generate-static-files"><a class="markdownIt-Anchor" href="#generate-static-files"></a> Generate static files</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="deploy-to-remote-sites"><a class="markdownIt-Anchor" href="#deploy-to-remote-sites"></a> Deploy to remote sites</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
-      <categories>
-        <category>Hello World</category>
-      </categories>
-      <tags>
-        <tag>Test</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Test</title>
-    <url>/2023/07/05/Test/</url>
-    <content><![CDATA[<p>This is a <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>e</mi><mi>s</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">test</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord mathnormal">s</span><span class="mord mathnormal">t</span></span></span></span>.<br />
-Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span><br />
-111 Aha! <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">E = mc^{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>.</p>
-<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mo fence="true">(</mo><mi>β</mi><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup><mo>+</mo><mi>c</mi><mrow><mo fence="true">(</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mn>3</mn></munderover><msub><mi>α</mi><mi>n</mi></msub><msub><mi>p</mi><mi>n</mi></msub><mo fence="true">)</mo></mrow><mo fence="true">)</mo></mrow><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>i</mi><mi mathvariant="normal">ℏ</mi><mfrac><mrow><mi mathvariant="normal">∂</mi><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mrow><mi mathvariant="normal">∂</mi><mi>t</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\left(\beta m c^2 + c \left(\sum_{n=1}^3\alpha_n p_n\right)\right) \psi(x,t)
-= i\hbar \frac{\partial \psi(x,t)}{\partial t}
-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.068226em;vertical-align:-1.267113em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641079999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.882887em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.267113em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.0037em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.113em;vertical-align:-0.686em;"></span><span class="mord mathnormal">i</span><span class="mord">ℏ</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal">t</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
-]]></content>
-      <categories>
-        <category>Hello World</category>
-      </categories>
-      <tags>
-        <tag>Test</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Superscalar CPU Design - 1 - Abstract</title>
     <url>/2023/12/01/SSCPU-1/</url>
     <content><![CDATA[<h2 id="参数"><a class="markdownIt-Anchor" href="#参数"></a> 参数</h2>
@@ -5027,9 +4310,58 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       </tags>
   </entry>
   <entry>
-    <title>Superscalar CPU Design - 3 - Branch Prediction</title>
-    <url>/2023/12/01/SSCPU-3/</url>
-    <content><![CDATA[]]></content>
+    <title>Superscalar CPU Design - 2 - iCache</title>
+    <url>/2023/12/01/SSCPU-2/</url>
+    <content><![CDATA[<h2 id="概述"><a class="markdownIt-Anchor" href="#概述"></a> 概述</h2>
+<p><em>该部分仅考虑iCache设计，因此不涉及（从CPU）写Cache的内容。</em></p>
+<p>由于需要为后续多 way 扩展考虑，这里全部假设设计的CPU是 4-way 的。</p>
+<p>对于 iCache ，不需要<strong>真正</strong>支持多端口访问，因为大多数情况下取出的多条指令是连续的，因此输入端我们只设置一个端口，用于输入当前需要访问的指令的初始地址。对于一个 4-way 的超标量处理器，可以采取一条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn></mrow><annotation encoding="application/x-tex">8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">8</span></span></span></span> 字（32B），一次将整个 CacheLine 取出的 iCache，这样在任意位置每次平均取得 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>4.5</mn></mrow><annotation encoding="application/x-tex">4.5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">.</span><span class="mord">5</span></span></span></span> 条指令，考虑到由于指令中含有分支指令，实际上可能会将分支指令后的指令抛弃，这个数量应当差不多可以满足要求。</p>
+<p>取得指令后，iCache 会将指令送至一个大小为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>32</mn></mrow><annotation encoding="application/x-tex">32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">2</span></span></span></span> 字（128B）的“指令缓存”中，这是一个 FIFO，一方面接受 iCache 多取的指令来尽量保证处理器每周期都能有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>4</mn></mrow><annotation encoding="application/x-tex">4</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span></span></span></span> 条指令供处理，另一方面会根据分支预测器的结果判断分支方向来将分支语句后取得的指令抛弃。</p>
+<p>由于设计为状态机，实际上跨两个流水级，作为从第一流水级（分支预测）到第二流水级（指令缓存与发射）的中介。也就是读 iCache 需要消耗一周期。</p>
+<h2 id="容量"><a class="markdownIt-Anchor" href="#容量"></a> 容量</h2>
+<p>iCache 采用组相连的方式，每条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn></mrow><annotation encoding="application/x-tex">8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">8</span></span></span></span> 字，每个组含 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn></mrow><annotation encoding="application/x-tex">8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">8</span></span></span></span> 个 CacheLine，总共含有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>64</mn></mrow><annotation encoding="application/x-tex">64</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">6</span><span class="mord">4</span></span></span></span> 个组，即对于以字节为单位的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>32</mn></mrow><annotation encoding="application/x-tex">32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">2</span></span></span></span>  位内存地址，从后往前数， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn></mrow><annotation encoding="application/x-tex">0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span> （字对齐）， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn></mrow><annotation encoding="application/x-tex">3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span></span></span></span> 位指定 CacheLine 内的偏移， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6</mn></mrow><annotation encoding="application/x-tex">6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">6</span></span></span></span> 位决定在哪个组，剩余的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>21</mn></mrow><annotation encoding="application/x-tex">21</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">1</span></span></span></span> 位为 Tag 的大小，即总计 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>64</mn><mo>×</mo><mo stretchy="false">(</mo><mn>24</mn><mo>+</mo><mn>8</mn><mo>×</mo><mn>8</mn><mo>×</mo><mn>4</mn><mo stretchy="false">)</mo><mo>=</mo><mn>17920</mn></mrow><annotation encoding="application/x-tex">64\times (24+8\times 8\times 4)=17920</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">6</span><span class="mord">4</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">2</span><span class="mord">4</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">4</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">7</span><span class="mord">9</span><span class="mord">2</span><span class="mord">0</span></span></span></span> 字节，存储容量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>16</mn></mrow><annotation encoding="application/x-tex">16</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">6</span></span></span></span> KB。</p>
+<h2 id="端口"><a class="markdownIt-Anchor" href="#端口"></a> 端口</h2>
+<p>和 CPU 其他部件通信的端口：</p>
+<p>输入信号包括：</p>
+<ul>
+<li>sync_clr 代表同步抹除信号</li>
+<li>async_clr 代表异步抹除信号</li>
+<li>clk 时钟信号</li>
+<li>cpu_req_addr[31:0] 代表当前请求的地址</li>
+<li>cpu_req_flag 代表当前请求信号</li>
+</ul>
+<p>输出信号包括：</p>
+<ul>
+<li>cache_data[255:0] 代表读取到的数据，可能为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mtext> </mtext><mn>8</mn></mrow><annotation encoding="application/x-tex">1~8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mspace nobreak"> </span><span class="mord">8</span></span></span></span> 条指令</li>
+<li>cache_cnt[2:0] 代表数据个数，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mtext> </mtext><mn>7</mn></mrow><annotation encoding="application/x-tex">0~7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span><span class="mspace nobreak"> </span><span class="mord">7</span></span></span></span> 分别代表 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mtext> </mtext><mn>8</mn></mrow><annotation encoding="application/x-tex">1~8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mspace nobreak"> </span><span class="mord">8</span></span></span></span></li>
+<li>cache_miss 如果出现 miss 则置位，使 CPU 更新 pc 的部分暂停</li>
+</ul>
+<p>和内存通信的端口：</p>
+<p>输入信号包括：</p>
+<ul>
+<li>parent_data[255:0] 代表上一级存储单元读到的数据，为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn></mrow><annotation encoding="application/x-tex">8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">8</span></span></span></span> 字即一条 CacheLine的长度</li>
+<li>parent_data_valid 代表上一级存储单元数据是否有效</li>
+</ul>
+<p>输出信号包括：</p>
+<ul>
+<li>cache_req_addr[31:0] 代表向上一级存储单元请求的内存地址</li>
+<li>cache_req_flag 代表是否正在向上一级存储单元请求数据</li>
+</ul>
+<h2 id="状态机"><a class="markdownIt-Anchor" href="#状态机"></a> 状态机</h2>
+<ul>
+<li>任何时候收到 async_clr 信号则抹除全部数据并设为 WORK 态</li>
+<li>时钟周期开始时如果 async_clr 或 sync_clr 置位则抹除数据并设为 WORK 态</li>
+<li>WORK 正常工作，输出对应数据，如果 miss 则转 MISS 态</li>
+<li>MISS 将 cache_miss 和 cache_req_flag 置位，等待上一级存储单元返回结果，如果 parent_data_valid 返回 WORK 态，将 cache_miss 和 cache_req_flag 置 false。</li>
+</ul>
+<h2 id="示例"><a class="markdownIt-Anchor" href="#示例"></a> 示例</h2>
+<p>周期 1 收到读 0x3000 指令信号，未 miss，输出对应指令给下一级<br />
+周期 2 收到读 0x3010 指令信号，miss，转 MISS 态并输出 cache_miss 和 cache_req_flag<br />
+周期 3 由于 cache_miss，分支预测器暂停更新，继续等待访存结果<br />
+周期 4 访存完成，flag = 1，关闭 cache_miss 和 cache_req_flag，输出对应指令给下一级<br />
+周期 5 由于收到 cache_req_flag 关闭，访存 flag = 0，收到读 0x3020 指令信号，miss，再置位</p>
+<p>即 flag 会根据 cache_miss 置位，miss 前一定是转到了 WORK 态即转到的时候 flag 已关闭，不会出现 MISS 开始时 flag = 1 误判的情况。</p>
+]]></content>
       <categories>
         <category>SSCPU</category>
       </categories>
@@ -5039,13 +4371,789 @@ Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w
       </tags>
   </entry>
   <entry>
-    <title>Superscalar CPU Design - 2 - iCache</title>
-    <url>/2023/12/01/SSCPU-2/</url>
-    <content><![CDATA[<p><em>该部分仅考虑iCache设计，因此不涉及（从CPU）写Cache的内容。</em></p>
-<p>由于需要为后续多 way 扩展考虑，这里全部假设设计的CPU是 4-way 的。</p>
-<p>对于 iCache ，不需要<strong>真正</strong>支持多端口访问，因为大多数情况下取出的多条指令是连续的，因此输入端我们只设置一个端口，用于输入当前需要访问的指令的初始地址。对于一个 4-way 的超标量处理器，可以采取一条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字，一次取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字的 iCache，这样在任意位置每次平均取得 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 条指令，考虑到由于指令中含有分支指令，实际上可能会将分支指令后的指令抛弃，这个数量应当差不多可以满足要求。</p>
-<p>取得指令后，iCache 会将指令送至一个“指令缓存”中，这是一个 FIFO，一方面接受 iCache 多取的指令来尽量保证处理器每周期都能有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 条指令供处理，另一方面会根据分支预测器的结果判断分支方向来将分支语句后取得的指令抛弃。</p>
-<p>iCache 采用组相连的方式，每条 CacheLine 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 字，每个组相连含 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个 CacheLine，总共含有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个组，即对于以字节为单位的内存地址，从后往前数， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> （字对齐）， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位指定 CacheLine 内的偏移， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位决定组内偏移，剩余的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位为 Tag 的大小，即 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个组， <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 个 CacheLine，每组 Tag  <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span></span></span></span> 位总计 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>8</mn><mo>×</mo><mo stretchy="false">(</mo><mn>24</mn><mo>+</mo><mn>8</mn><mo>×</mo><mn>8</mn><mo>×</mo><mn>4</mn><mo stretchy="false">)</mo><mo>=</mo><mn>2240</mn></mrow><annotation encoding="application/x-tex">8\times (24+8\times 8\times 4)=2240</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">2</span><span class="mord">4</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">4</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">2</span><span class="mord">4</span><span class="mord">0</span></span></span></span> 字节。</p>
+    <title>计算机组成 P3 CPU 设计文档</title>
+    <url>/2022/10/31/CO-P3-CPU/</url>
+    <content><![CDATA[<h2 id="思考题"><a class="markdownIt-Anchor" href="#思考题"></a> 思考题</h2>
+<h3 id="1-通过fsm理解cpu"><a class="markdownIt-Anchor" href="#1-通过fsm理解cpu"></a> 1 通过FSM理解CPU</h3>
+<p>单周期CPU所用到的模块中，发挥状态存储功能的包括IFU（PC寄存器），GRF（通过寄存器组存储状态），DM（使用RAM存储状态）；发挥状态转移功能的包括IFU（实现PC地址不断自增），Controller（实现将指令转移为控制信号），ALU（计算得到目标结果）。</p>
+<h3 id="2-存储元件合理性"><a class="markdownIt-Anchor" href="#2-存储元件合理性"></a> 2 存储元件合理性</h3>
+<ul>
+<li>IM使用ROM：IM一次只需要读取一条指令，且IM中存储的指令不可被修改，符合ROM大容量存储且只读的特点，同时现实中的计算机需要保证在关闭电源后也能保存指令，因此不能使用断电会丢失数据的RAM。</li>
+<li>DM使用RAM：DM一次只需要读取一个地址对应的数据且需要支持可读写，符合RAM大容量存储且可反复读写的特点，同时现实中的寄存器单位存储大小的价格远高于RAM，对于没有那么刚需读写速度的DM而言使用RAM成本最为合适。</li>
+<li>GRF使用寄存器：基本上CPU执行每条指令都涉及到对于GRF的读写，且常常需要一次读取两个不同寄存器的值，Logisim中的RAM和ROM都不支持同时读取两个地址值加写入数据（ROM甚至完全不支持写入），因此需要使用分开来的寄存器组实现同时读取数据和写入数据。且现实中的寄存器读写速度远高于RAM和ROM，符合CPU需要频繁读取和写入GRF的特点。</li>
+<li>为何不使用Logisim提供的其他触发器：其他触发器是组成寄存器的基础电路，使用其他触发器再行包装的话与直接使用寄存器元件效果并无不同，却更容易在包装过程中造成问题，为了减少开发难度选择不使用这些元件。</li>
+</ul>
+<h3 id="3-其他模块"><a class="markdownIt-Anchor" href="#3-其他模块"></a> 3 其他模块</h3>
+<p>无其他模块</p>
+<h3 id="4-nop指令"><a class="markdownIt-Anchor" href="#4-nop指令"></a> 4 nop指令</h3>
+<p>对于nop指令，由于Controller采用的电路连接方式，op和func全0时AND_logic输出也是全0，对应OR_logic输出也是全0，所以不会执行指令跳转，不会执行任何GRF或DM写入，因此此时不会执行任何改变当前状态的操作，等价于nop空指令需要达成的效果。</p>
+<h3 id="5-mars导出指令"><a class="markdownIt-Anchor" href="#5-mars导出指令"></a> 5 MARS导出指令</h3>
+<p>在课程MIPS要求的设置下，Data从0x00000000开始，Text即代码部分从0x00003000开始，则可以直接通过单独区分J型指令并将其对应指令地址与0x00003000相减即可，增加一个减法器即可解决问题，不需要手工修改最终的机器码。</p>
+<p>但在本次P3题目中，由于Compact设置为Data从0x00000000开始，且唯一的跳转指令beq并不涉及指令地址的绝对位置，只涉及相对位置，因此并不需要进行相关修改。</p>
+<h3 id="6-pre的mips测试样例强度"><a class="markdownIt-Anchor" href="#6-pre的mips测试样例强度"></a> 6 Pre的MIPS测试样例强度</h3>
+<h4 id="各个指令的覆盖率分析"><a class="markdownIt-Anchor" href="#各个指令的覆盖率分析"></a> 各个指令的覆盖率分析</h4>
+<ul>
+<li>ori 立即数范围可以更扩大，测试边界情况（如0xffff）时的情况</li>
+<li>lui 应增加被改变寄存器本来已存有值的情况，比如lui误实现为“将立即数置于高位但保留原数低16位”的情况就不能检测到</li>
+<li>add 没有检测到寄存器自增自减的情况</li>
+<li>sw 没有测试同寄存器同时作为地址存储和被写入寄存器的情况</li>
+<li>lw 同上，且测试范围不够，可以考虑测试更多边界条件。</li>
+<li>beq 没有考察立即数是负数的情况（向前跳跃）</li>
+</ul>
+<h2 id="测试方案"><a class="markdownIt-Anchor" href="#测试方案"></a> 测试方案</h2>
+<ol>
+<li>采用github上的hex2mips工具将所给的P3_Testcode.txt转回汇编语言后，逐行运行对比观察模块行为，处理不同的位置并定位bug。</li>
+<li>采用自己书写的测试MIPS汇编代码，通过自动化测试工具（使用python在已有MIPS模拟器的基础上进行更改、修复与扩展后输出对应信息到logisim自动测试模块内进行评测并定位问题，进而处理bug，详见自动化测试文件提交。</li>
+</ol>
+<h2 id="指令集综述"><a class="markdownIt-Anchor" href="#指令集综述"></a> 指令集综述</h2>
+<h3 id="简要说明"><a class="markdownIt-Anchor" href="#简要说明"></a> 简要说明</h3>
+<p>包含指令集如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub ori lw sw beq lui nop</span><br></pre></td></tr></table></figure>
+<h3 id="r-i-j-型指令说明"><a class="markdownIt-Anchor" href="#r-i-j-型指令说明"></a> R I J 型指令说明</h3>
+<h4 id="r型"><a class="markdownIt-Anchor" href="#r型"></a> R型</h4>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">add sub and or nor sll srl jr</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16 (5)</th>
+<th style="text-align:center">15~11 (5)</th>
+<th style="text-align:center">10~6 (5)</th>
+<th style="text-align:center">5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">五位立即数</td>
+<td style="text-align:center">操作码</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">rd</td>
+<td style="text-align:center">shamt (sa)</td>
+<td style="text-align:center">func</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">恒为0x0</td>
+<td style="text-align:center">第一参</td>
+<td style="text-align:center">第二参</td>
+<td style="text-align:center">目的参</td>
+<td style="text-align:center">移位量</td>
+<td style="text-align:center">指示操作类型</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i型"><a class="markdownIt-Anchor" href="#i型"></a> I型</h3>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi andi ori xori lw sw beq bne lui</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">寄存器地址</td>
+<td style="text-align:center">立即数</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">imm</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">指示操作类型</td>
+<td style="text-align:center">第一参</td>
+<td style="text-align:center">目的参</td>
+<td style="text-align:center">立即数</td>
+</tr>
+</tbody>
+</table>
+<h3 id="j型"><a class="markdownIt-Anchor" href="#j型"></a> J型</h3>
+<p>包括</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">j jal</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~0 (26)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">类型</td>
+<td style="text-align:center">操作码</td>
+<td style="text-align:center">指令地址</td>
+</tr>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">address</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">指示操作类型</td>
+<td style="text-align:center">目标跳转位置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="无符号加-add"><a class="markdownIt-Anchor" href="#无符号加-add"></a> （无）符号加 add</h3>
+<p>按照要求，依照add的机器码处理，但加法依照无符号数加法完成。取两个寄存器中的数，无符号相加（不考虑溢出）后存入目标寄存器。为R型指令。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16 (5)</th>
+<th style="text-align:center">15~11 (5)</th>
+<th style="text-align:center">10~6 (5)</th>
+<th style="text-align:center">5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">rd</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">func</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">000000</td>
+<td style="text-align:center">第一加数地址</td>
+<td style="text-align:center">第二加数地址</td>
+<td style="text-align:center">结果存储地址</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">100000</td>
+</tr>
+</tbody>
+</table>
+<h3 id="无符号减-sub"><a class="markdownIt-Anchor" href="#无符号减-sub"></a> （无）符号减 sub</h3>
+<p>按照要求，依照sub的机器码处理，但减法依照无符号数加法完成。无符号相减（不考虑溢出）后存入目标寄存器。为R型指令。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16 (5)</th>
+<th style="text-align:center">15~11 (5)</th>
+<th style="text-align:center">10~6 (5)</th>
+<th style="text-align:center">5~0 (6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">rd</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">func</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">000000</td>
+<td style="text-align:center">被减数地址</td>
+<td style="text-align:center">减数地址</td>
+<td style="text-align:center">结果存储地址</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">100010</td>
+</tr>
+</tbody>
+</table>
+<h3 id="或立即数-ori"><a class="markdownIt-Anchor" href="#或立即数-ori"></a> 或立即数 ori</h3>
+<p>按照要求，即为将某寄存器中数或一个16位立即数，将得到的数存到目标寄存器中。为I型指令。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">imm</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">001101</td>
+<td style="text-align:center">被或数地址</td>
+<td style="text-align:center">结果存储地址</td>
+<td style="text-align:center">立即数</td>
+</tr>
+</tbody>
+</table>
+<h3 id="加载字-lw"><a class="markdownIt-Anchor" href="#加载字-lw"></a> 加载字 lw</h3>
+<p>取内存中的一字长的内容存入目标寄存器。为I型指令。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addr &lt;- GPR[base] + sign_ext(offset)</span><br><span class="line">GPR[rt] &lt;- memory[addr]</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">base</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">offset</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">100011</td>
+<td style="text-align:center">内存地址所在寄存器</td>
+<td style="text-align:center">结果存储地址</td>
+<td style="text-align:center">内存地址偏移量（立即数）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="存储字-sw"><a class="markdownIt-Anchor" href="#存储字-sw"></a> 存储字 sw</h3>
+<p>将目标寄存器中的内容存入内存中一字长的位置。为I型指令。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addr &lt;- GPR[base] + sign_ext(offset)</span><br><span class="line">memory[addr] &lt;- GPR[rt] </span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">base</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">offset</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">101011</td>
+<td style="text-align:center">内存地址所在寄存器</td>
+<td style="text-align:center">目标寄存器地址</td>
+<td style="text-align:center">内存地址偏移量（立即数）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="相等时转移-beq"><a class="markdownIt-Anchor" href="#相等时转移-beq"></a> 相等时转移 beq</h3>
+<p>当两个目标寄存器中存储的值相等时转移到目标指令处。为I型指令。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">if (GPR[rs] == GPR[rt])</span><br><span class="line">	PC &lt;- PC + 4 + sign_extend(&#123;offset,2&#123;0&#125;&#125;)</span><br><span class="line">else</span><br><span class="line">	PC &lt;- PC + 4</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">rs</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">offset</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">000100</td>
+<td style="text-align:center">第一目标寄存器</td>
+<td style="text-align:center">第二目标寄存器</td>
+<td style="text-align:center">转移目标指令地址</td>
+</tr>
+</tbody>
+</table>
+<h3 id="立即数加载至高位-lui"><a class="markdownIt-Anchor" href="#立即数加载至高位-lui"></a> 立即数加载至高位 lui</h3>
+<p>将立即数赋值到目标寄存器的高16位。为I型指令。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">位置 (位数)</th>
+<th style="text-align:center">31~26 (6)</th>
+<th style="text-align:center">25~21 (5)</th>
+<th style="text-align:center">20~16(5)</th>
+<th style="text-align:center">15~0 (16)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">名称</td>
+<td style="text-align:center">OP</td>
+<td style="text-align:center">0</td>
+<td style="text-align:center">rt</td>
+<td style="text-align:center">imm</td>
+</tr>
+<tr>
+<td style="text-align:center">解释</td>
+<td style="text-align:center">001111</td>
+<td style="text-align:center">00000</td>
+<td style="text-align:center">目标寄存器</td>
+<td style="text-align:center">立即数</td>
+</tr>
+</tbody>
+</table>
+<h3 id="空指令-nop"><a class="markdownIt-Anchor" href="#空指令-nop"></a> 空指令 nop</h3>
+<p>机器码为0x00000000，不进行任何有效行为。</p>
+<h2 id="ifu-取指令单元"><a class="markdownIt-Anchor" href="#ifu-取指令单元"></a> IFU 取指令单元</h2>
+<h3 id="功能要求"><a class="markdownIt-Anchor" href="#功能要求"></a> 功能要求</h3>
+<ul>
+<li>内部包括 PC（程序计数器）、IM（指令存储器）及相关逻辑。</li>
+<li>PC 用寄存器实现，应具有<strong>异步复位</strong>功能，复位值为起始地址。</li>
+<li><strong>起始地址：0x00000000。</strong></li>
+<li>IM 用 ROM 实现，容量为 32bit × 32字。</li>
+<li>IM 实际地址宽度仅为 5 位，需要使用恰当的方法将 PC 中储存的地址同 IM 联系起来。</li>
+</ul>
+<h3 id="输入端口"><a class="markdownIt-Anchor" href="#输入端口"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset 异步复位信号</li>
+<li>ALUZero 代表Branch指令是否满足要求</li>
+<li>PCSrc [1:0] 指示当前的指令类型，00代表指令不影响跳转，01代表Branch指令，10代表J型指令（跳转到标记），11代表jr类指令（跳转到寄存器地址）</li>
+<li>PCBranch [7:0] Branch后的新指令地址</li>
+<li>PCJAL [31:0] 连接RD1，对应jal取出的寄存器内存储的值。</li>
+</ul>
+<h3 id="输出端口"><a class="markdownIt-Anchor" href="#输出端口"></a> 输出端口</h3>
+<ul>
+<li>Inst [31:0] 取得的指令</li>
+<li>PCNxt [7:0] 下一条要执行的指令地址</li>
+</ul>
+<h3 id="行为逻辑"><a class="markdownIt-Anchor" href="#行为逻辑"></a> 行为逻辑</h3>
+<ul>
+<li>任何时刻，输出当前PC寄存器对应ROM地址中的指令</li>
+<li>每个clk上沿将当前PC寄存器存储的地址+4并输出到PCNxt，PCSrc为00时将该值存储到PC寄存器中</li>
+<li>每个clk上沿PCSrc为01时，判断ALUZero是否为真，为真则将PCBranch存入PC寄存器中，为假将PC+4存入PC寄存器中。</li>
+<li>每个clk上沿PCSrc为10或11时，分别对应J型和jr类指令，按照相应方式处理。</li>
+</ul>
+<h2 id="alu-算术逻辑单元"><a class="markdownIt-Anchor" href="#alu-算术逻辑单元"></a> ALU 算术逻辑单元</h2>
+<h3 id="功能要求-2"><a class="markdownIt-Anchor" href="#功能要求-2"></a> 功能要求</h3>
+<ul>
+<li>提供 32 位加、减、或运算及大小比较功能。</li>
+<li>加减法按无符号处理（不考虑溢出）。</li>
+</ul>
+<h3 id="输入端口-2"><a class="markdownIt-Anchor" href="#输入端口-2"></a> 输入端口</h3>
+<ul>
+<li>SrcA [31:0] 第一个参数输入</li>
+<li>SrcB [31:0] 第二个参数输入</li>
+<li>ALUCtrl [2:0] ALU操作类型控制码</li>
+</ul>
+<h3 id="输出端口-2"><a class="markdownIt-Anchor" href="#输出端口-2"></a> 输出端口</h3>
+<ul>
+<li>Zero 输出结果是否为0</li>
+<li>ALUResult [31:0] 计算结果</li>
+</ul>
+<h3 id="控制信号说明"><a class="markdownIt-Anchor" href="#控制信号说明"></a> 控制信号说明</h3>
+<ul>
+<li>或运算 000</li>
+<li>与运算 001</li>
+<li>加法运算（无符号无溢出） 010</li>
+<li>减法运算（无符号无溢出） 011</li>
+<li>立即数加载至高位 100</li>
+<li>或立即数（将SrcB取低16位进行0扩展后和SrcA取或） 101</li>
+</ul>
+<h2 id="grf-通用寄存器组"><a class="markdownIt-Anchor" href="#grf-通用寄存器组"></a> GRF 通用寄存器组</h2>
+<h3 id="功能要求-3"><a class="markdownIt-Anchor" href="#功能要求-3"></a> 功能要求</h3>
+<ul>
+<li>用具有写使能的寄存器实现，寄存器总数为 32 个，应具有<strong>异步复位</strong>功能。</li>
+<li><strong>0 号寄存器</strong>的值始终保持为 0。其他寄存器<strong>初始值（复位后）均为 0</strong>，无需专门设置。</li>
+</ul>
+<h3 id="输入端口-3"><a class="markdownIt-Anchor" href="#输入端口-3"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset 异步复位信号</li>
+<li>WE 写使能信号</li>
+<li>A1 [4:0] 第一读取地址</li>
+<li>A2 [4:0] 第二读取地址</li>
+<li>A3 [4:0] 写入地址</li>
+<li>WD [31:0] 写入数据输入</li>
+</ul>
+<h3 id="输出端口-3"><a class="markdownIt-Anchor" href="#输出端口-3"></a> 输出端口</h3>
+<ul>
+<li>RD1 [31:0] 第一读取输出 输出A1地址的寄存器中的数据</li>
+<li>RD2 [31:0] 第二读取输出 输出A2地址的寄存器中的数据</li>
+</ul>
+<h3 id="功能说明"><a class="markdownIt-Anchor" href="#功能说明"></a> 功能说明</h3>
+<ul>
+<li>任何时刻，RD1和RD2都输出A1和A2对应地址的寄存器中的数据</li>
+<li>Reset异步复位，将所有寄存器复位为0</li>
+<li>0号寄存器永远保持为0</li>
+<li>当WE为真时，将WD的数据在clk上沿写入A3对应地址的寄存器</li>
+</ul>
+<h2 id="dm-数据存储器内存"><a class="markdownIt-Anchor" href="#dm-数据存储器内存"></a> DM 数据存储器（内存）</h2>
+<h3 id="功能要求-4"><a class="markdownIt-Anchor" href="#功能要求-4"></a> 功能要求</h3>
+<ul>
+<li>使用 RAM 实现，容量为 32bit × 32字，应具有<strong>异步复位</strong>功能，复位值为 0x00000000。</li>
+<li><strong>起始地址：0x00000000</strong>。</li>
+<li>RAM 应使用双端口模式，即设置 RAM 的 <strong>Data Interface</strong> 属性为 <strong>Separate load and store ports</strong>。</li>
+</ul>
+<h3 id="输入端口-4"><a class="markdownIt-Anchor" href="#输入端口-4"></a> 输入端口</h3>
+<ul>
+<li>clk 时钟信号</li>
+<li>Reset 异步复位信号</li>
+<li>WE 写使能信号</li>
+<li>Addr [4:0] 写入/读取地址</li>
+<li>WD [31:0] 写入数据</li>
+</ul>
+<h3 id="输出端口-4"><a class="markdownIt-Anchor" href="#输出端口-4"></a> 输出端口</h3>
+<ul>
+<li>RD [31:0] 读取结果数据</li>
+</ul>
+<h3 id="功能说明-2"><a class="markdownIt-Anchor" href="#功能说明-2"></a> 功能说明</h3>
+<ul>
+<li>任何时刻，在RD输出AddrR对应内存地址的内存数据</li>
+<li>当WE为真时，将WD的数据在clk上沿写入AddrW对应内存地址</li>
+</ul>
+<h2 id="controller-控制器"><a class="markdownIt-Anchor" href="#controller-控制器"></a> Controller 控制器</h2>
+<h3 id="功能要求-5"><a class="markdownIt-Anchor" href="#功能要求-5"></a> 功能要求</h3>
+<p>将输入的opcode和funct转化为CPU各部分对应信号输出</p>
+<h3 id="实现方式"><a class="markdownIt-Anchor" href="#实现方式"></a> 实现方式</h3>
+<p>将Controller分为将opcode和funct转化为各个指令对应的独热输出的AND_logic模块和将各个指令对应到不同输出信号的OR_logic模块，两模块不额外进行封装，直接在顶层模块中进行连接，这样可以通过两模块中间线的高亮直观判断当前在执行何种指令。</p>
+<h3 id="输入端口-5"><a class="markdownIt-Anchor" href="#输入端口-5"></a> 输入端口</h3>
+<ul>
+<li>OP [5:0] 标识命令种类的指令，按MIPS汇编标准执行</li>
+<li>func [5:0] 标识R型指令具体种类的指令，按MIPS汇编标准执行</li>
+</ul>
+<h3 id="输出端口-5"><a class="markdownIt-Anchor" href="#输出端口-5"></a> 输出端口</h3>
+<ul>
+<li>Mem2Reg [1:0] 决定GRF写入数据来源，00代表ALU输出，01代表DM输出</li>
+<li>MemWrite 决定DM是否允许写入</li>
+<li>Branch [1:0] 指示当前的指令类型，00代表指令不影响跳转，01代表Branch指令，10代表J型指令（跳转到标记），11代表jr类指令（跳转到寄存器地址）</li>
+<li>ALUCtrl [2:0] 决定当前ALU执行何种运算，具体见ALU说明</li>
+<li>ALUSrc 决定ALU的第二参来自GRF的RD2（对应值0）还是立即数（对应值1）</li>
+<li>RegDest [1:0] 决定寄存器写入地址来源是Inst[15:11]（对应值01）还是Inst[20:16]（对应值00）</li>
+<li>RegWrite 决定GRF是否允许写入</li>
+<li>ExtSign 决定扩展方式，0代表0扩展，1代表符号扩展。</li>
+</ul>
+<h3 id="各指令对应controller输出"><a class="markdownIt-Anchor" href="#各指令对应controller输出"></a> 各指令对应Controller输出</h3>
+<table>
+<thead>
+<tr>
+<th>func</th>
+<th>10 0000</th>
+<th>10 0010</th>
+<th>-</th>
+<th></th>
+<th></th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>op</strong></td>
+<td><strong>00 0000</strong></td>
+<td><strong>00 0000</strong></td>
+<td><strong>00 1101</strong></td>
+<td><strong>10 0011</strong></td>
+<td><strong>10 1011</strong></td>
+<td><strong>00 0100</strong></td>
+<td><strong>00 1111</strong></td>
+</tr>
+<tr>
+<td></td>
+<td>add</td>
+<td>sub</td>
+<td>ori</td>
+<td>lw</td>
+<td>sw</td>
+<td>beq</td>
+<td>lui</td>
+</tr>
+<tr>
+<td>Mem2Reg</td>
+<td>00</td>
+<td>00</td>
+<td>00</td>
+<td>01</td>
+<td>-</td>
+<td>-</td>
+<td>0</td>
+</tr>
+<tr>
+<td>MemWrite</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Branch</td>
+<td>00</td>
+<td>00</td>
+<td>00</td>
+<td>00</td>
+<td>00</td>
+<td>01</td>
+<td>00</td>
+</tr>
+<tr>
+<td>ALUCtrl</td>
+<td>2</td>
+<td>3</td>
+<td>5</td>
+<td>2</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+</tr>
+<tr>
+<td>(CalcMode)</td>
+<td>add</td>
+<td>sub</td>
+<td>ori</td>
+<td>add</td>
+<td>add</td>
+<td>sub</td>
+<td>lui</td>
+</tr>
+<tr>
+<td>ALUSrc</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>RegDest</td>
+<td>01</td>
+<td>01</td>
+<td>00</td>
+<td>00</td>
+<td>-</td>
+<td>-</td>
+<td>00</td>
+</tr>
+<tr>
+<td>RegWrite</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ExtSign</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+]]></content>
+      <categories>
+        <category>CO</category>
+      </categories>
+      <tags>
+        <tag>Arch</tag>
+        <tag>CO</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Test</title>
+    <url>/2023/07/05/Test/</url>
+    <content><![CDATA[<p>This is a <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>e</mi><mi>s</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">test</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">e</span><span class="mord mathnormal">s</span><span class="mord mathnormal">t</span></span></span></span>.<br />
+Inline: <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>+</mo><mi>b</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">a + b - 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">a</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.77777em;vertical-align:-0.08333em;"></span><span class="mord mathnormal">b</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span><br />
+111 Aha! <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">E = mc^{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>.</p>
+<p class='katex-block'><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mrow><mo fence="true">(</mo><mi>β</mi><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup><mo>+</mo><mi>c</mi><mrow><mo fence="true">(</mo><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mn>3</mn></munderover><msub><mi>α</mi><mi>n</mi></msub><msub><mi>p</mi><mi>n</mi></msub><mo fence="true">)</mo></mrow><mo fence="true">)</mo></mrow><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo><mo>=</mo><mi>i</mi><mi mathvariant="normal">ℏ</mi><mfrac><mrow><mi mathvariant="normal">∂</mi><mi>ψ</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>t</mi><mo stretchy="false">)</mo></mrow><mrow><mi mathvariant="normal">∂</mi><mi>t</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\left(\beta m c^2 + c \left(\sum_{n=1}^3\alpha_n p_n\right)\right) \psi(x,t)
+= i\hbar \frac{\partial \psi(x,t)}{\partial t}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.068226em;vertical-align:-1.267113em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mord mathnormal" style="margin-right:0.05278em;">β</span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641079999999999em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size4">(</span></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.882887em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.267113em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.0037em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size4">)</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.113em;vertical-align:-0.686em;"></span><span class="mord mathnormal">i</span><span class="mord">ℏ</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal">t</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord" style="margin-right:0.05556em;">∂</span><span class="mord mathnormal" style="margin-right:0.03588em;">ψ</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
+]]></content>
+      <categories>
+        <category>Hello World</category>
+      </categories>
+      <tags>
+        <tag>Test</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World!</title>
+    <url>/2023/07/05/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="quick-start"><a class="markdownIt-Anchor" href="#quick-start"></a> Quick Start</h2>
+<h3 id="create-a-new-post"><a class="markdownIt-Anchor" href="#create-a-new-post"></a> Create a new post</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="run-server"><a class="markdownIt-Anchor" href="#run-server"></a> Run server</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="generate-static-files"><a class="markdownIt-Anchor" href="#generate-static-files"></a> Generate static files</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="deploy-to-remote-sites"><a class="markdownIt-Anchor" href="#deploy-to-remote-sites"></a> Deploy to remote sites</h3>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+      <categories>
+        <category>Hello World</category>
+      </categories>
+      <tags>
+        <tag>Test</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>寄存器分配笔记1</title>
+    <url>/2023/07/09/LLVM-Reg-Alloc-1/</url>
+    <content><![CDATA[<p>有无限多个虚拟寄存器——对应实际CPU中有有限个寄存器。</p>
+<p>寄存器分配前后分别会有两次指令调度</p>
+<p>常见的寄存器分配算法：</p>
+<ul>
+<li>PBQ</li>
+<li>Greedy 运行时间短</li>
+<li>Basic 编译快</li>
+<li>Fast 编译快</li>
+</ul>
+<p>整体流程：</p>
+<p>生命周期分析——权重计算——构造优先队列——分配寄存器——弹出无法分配的寄存器</p>
+<h2 id="生命周期分析"><a class="markdownIt-Anchor" href="#生命周期分析"></a> 生命周期分析</h2>
+<p>可以写成单独的 Pass，是计算每个寄存器的使用生命周期。</p>
+<p>所谓生命周期就是一个寄存器从一次定义到下一次定义前的最后一次使用的周期，如下示例：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">BB1:</span><br><span class="line">%<span class="number">1</span> = <span class="number">23</span>; <span class="comment">// 01</span></span><br><span class="line">%<span class="number">2</span> = %<span class="number">1</span> + <span class="number">2</span>; <span class="comment">// 02</span></span><br><span class="line"><span class="keyword">goto</span> BB2; <span class="comment">// 03</span></span><br><span class="line"></span><br><span class="line">BB2:</span><br><span class="line">... <span class="comment">// 04 - 12</span></span><br><span class="line">%<span class="number">3</span> = %<span class="number">1</span> + <span class="number">1</span>; <span class="comment">// 12</span></span><br><span class="line"><span class="keyword">goto</span> BB3; <span class="comment">// 13</span></span><br><span class="line"></span><br><span class="line">BB3:</span><br><span class="line"><span class="comment">// 14 - 21</span></span><br><span class="line">%<span class="number">4</span> = %<span class="number">3</span> + %<span class="number">2</span>; <span class="comment">// 22</span></span><br><span class="line"><span class="keyword">return</span>; <span class="comment">// 23</span></span><br></pre></td></tr></table></figure>
+<p>每条语句之后的注释标注了其对应的语句编号，则各个变量生命周期如下：</p>
+<p>%1 生命周期从 01 开始，在 BB1 中到 02 结束，在 BB2 中到 12 结束。</p>
+<p>%2 生命周期从 02 开始，在 BB1 中到 02 结束，在 BB3 中到 22 结束。</p>
+<p>%3 生命周期从 12 开始，在 BB2 中到 12 结束，在 BB3 中到 22 结束。</p>
+<p>（生命周期包括：如果单基本块则从定义到最后一次使用，如果跨基本块则在定义基本块中从定义到基本块结束，在其他使用基本块中从开头到最后一次使用）</p>
+<h2 id="权重计算"><a class="markdownIt-Anchor" href="#权重计算"></a> 权重计算</h2>
+<p>计算一个寄存器的<strong>重要程度</strong>，代表它获得寄存器分配的重要权重高低。</p>
+<p>简单的方法包括：如果在一个常用循环中使用则权重高，如果寄存器相关访问少或简单则权重低。生命周期越长，权重越低。</p>
+<p>分配权重：</p>
+<p>如果只在一个基本块使用，权重低。</p>
+<p>在多个基本块都要使用，权重高。</p>
+<p>以<strong>分配权重</strong>大小设优先队列，将各个寄存器入队。</p>
+<h2 id="寄存器分配"><a class="markdownIt-Anchor" href="#寄存器分配"></a> 寄存器分配</h2>
+<p>从优先队列依次取寄存器，分配到物理寄存器。</p>
+<p>分配时参考生命周期冲突，如果没有生命周期冲突则可以共用寄存器。</p>
+<p>每次取寄存器后，如果和当前所有物理寄存器分配的寄存器生命周期都有冲突，则比较前述重要权重（不是分配权重），如果更高则替换掉现有分配的寄存器。</p>
+<p>如果更低，则考虑能否进行拆分，即将生命周期拆分到多个不同的寄存器上，如第一段时4号寄存器空闲，第二段时5号寄存器空闲，则通过第一段分给4号，第二段分给5号，第二段开头插入一个move指令将4号的值复制给5号实现。如果这种拆分有益于速度，则执行拆分。</p>
+<p>实际LLVM操作中不会拆分后直接插入，而是先计算合适的拆分位置，然后进行拆分，拆分后将原有的寄存器拆分为两个不同的寄存器重新放入优先队列，再按前述规则进行出队和插入等操作。</p>
+<h2 id="spill-通过内存周转"><a class="markdownIt-Anchor" href="#spill-通过内存周转"></a> Spill （通过内存周转）</h2>
+<p>将不参与计算时的指令部分加入load/store指令，从而拆分成两个生命周期更短的寄存器，再尝试进行插入。</p>
+<h2 id="局限性"><a class="markdownIt-Anchor" href="#局限性"></a> 局限性</h2>
+<p>上述LLVM的Greedy分配方法主要关注点在于用最少的物理寄存器来进行分配，这样可以尽可能减少寄存器溢出，但是会有局限性——如果在寄存器足够的情况下，用极可能多的寄存器能够提升并行度，从而提高速度（e.g. 流水线中如果有寄存器依赖可能会降低速度）</p>
+<p>Register Allocatiion for Compressed ISAs in LLVM</p>
+]]></content>
+      <categories>
+        <category>PL</category>
+      </categories>
+      <tags>
+        <tag>PL</tag>
+        <tag>LLVM</tag>
+        <tag>编译</tag>
+        <tag>编译后端</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>编译后端笔记-图着色法-1</title>
+    <url>/2023/07/11/Compiler-Notes-1/</url>
+    <content><![CDATA[<h2 id="图着色法-细节"><a class="markdownIt-Anchor" href="#图着色法-细节"></a> 图着色法-细节</h2>
+<h3 id="函数活跃寄存器计算"><a class="markdownIt-Anchor" href="#函数活跃寄存器计算"></a> 函数活跃寄存器计算</h3>
+<p>这部分内容简单来说，就是对每个函数计算其各个基本块的活跃出入寄存器，也就是进入和离开基本块时，需要保持活跃（其值有意义/有用）的寄存器。</p>
+<p>首先，我们遍历每个基本块，先计算其内部的依赖关系。简便起见use，我们倒序遍历基本块内的指令，并维护两个集合：def 和 live_use，分别代表“该基本块中新定义了的寄存器”与“该基本块中未定义但使用了其值的寄存器”，注意这里定义实际上指的是重新赋值。然后，在遍历过程中，对每一条指令，如果该指令为寄存器赋值（即对于该指令的 dst 寄存器），则该寄存器在当前位置一定是新定义了的，一定不是未定义但使用的，就从 live_use 中移除，向 def 加入。类似的，如果该指令使用了某寄存器值（即对于该指令的 src 寄存器），则该寄存器在当前位置一定是未定义但被使用，一定不是新定义的，从 def 中移除，向 live_use 中加入。注意到有的指令可能有寄存器同时在 def 和 src 中，由于我们是倒序遍历，因此应该按上述叙述顺序判断并处理。</p>
+<p>这时，容易注意到所有的 live_use 都是满足我们对 live_in 要求的寄存器，因此赋值 live_in = live_use，但是这里的 live_in 还不全，需要后续处理。</p>
+<p>为了处理 live_out，即计算哪些基本块新定义的寄存器是后续需要被使用到的寄存器，我们定义一个队列，存储基本块到寄存器的使用关系，每个 std::pair 代表某个块新定义了某个寄存器。我们将所有当前基本块 live_use 的寄存器和该块一起推入队列。</p>
+<p>然后我们遍历队列，每次取队列头元素，获取当前块和当前块使用（但未定义）的某个寄存器，对于该块的所有前继基本块，如果前继的 live_out 中没有当前这个寄存器，则将其加入。这里需要判断一件事——有可能该寄存器也不是这个块定义的，如果不是，则需要将这个前继块和该寄存器再次推入队列，并为这个块的 live_in 记录下这个寄存器。</p>
+<h3 id="建图"><a class="markdownIt-Anchor" href="#建图"></a> 建图</h3>
+<p>在计算了各个基本块的出入活跃寄存器后，就可以开始建图了。我们使用邻接表存图，具体来说，使用如下的数据结构存储：</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">std::vector&lt;<span class="type">char</span>&gt; appeared;</span><br><span class="line">std::vector&lt;std::set&lt;<span class="type">int</span>&gt;&gt; edges;</span><br></pre></td></tr></table></figure>
+<p>两个动态数组的大小都是寄存器最大值。其中前者是一个记录某寄存器值是否出现在本函数中的布尔值数组，由于一些 C++ 特性，使用 char 类型。后者则是用于存边的，其内层是记录某寄存器和哪个寄存器有连边的集合，使用集合是为了保证不重复处理。</p>
+<p>建图过程中，由于前面我们已经计算了基本块之间的活跃关系，现在我们只需要遍历每一个基本块，处理块内的寄存器活跃关系并连边即可。</p>
+<p>在遍历每个基本块时，我们记录一个动态数组 live，存储“当前”的活跃寄存器，因为我们是对所有指令倒序遍历的，因此该数组的初始值为 live_out，即基本块结束时仍需要活跃的寄存器。</p>
+<p>首先，基本块结束时所有的需要活跃的寄存器一定是互斥的（互相冲突的，不能存储在相同寄存器中的，后同），因此首先需要对它们两两连边。因此我们设置一个空的动态数组 tmp，将所有的 live 中的寄存器推入。</p>
+<p>其次，我们需要将最后一条语句中的 dst 寄存器也推入 tmp 中，保证它和其他 live_out 的寄存器的互斥关系，原因后面解释。</p>
+<p>这时，tmp 中就存下了所有“在基本块结束时”互斥的寄存器，我们对其中的寄存器两两加边即可（注：图是无向图，所有的加边都是双向边）。</p>
+<p>然后就可以开始倒序遍历每条指令了。我们在遍历过程中不断维护 live 数组，具体来说，每当倒序遍历到一条新指令，这条指令如果对某寄存器进行了修改（即对于指令的 dst 寄存器来说），则该 dst 寄存器就不再 live，从 live 中移除。反之，如果使用了某寄存器的值（即对于指令的 src 寄存器来说），则此时（和从此时开始一直往前到该寄存器被定义，即被作为 dst）的这个 src 寄存器，就是活跃的，也就是说其值需要被保留，和其他所有的活跃寄存器互斥，将 src 和所有的 live 中寄存器连边，并将 src 推入 live 即可。</p>
+<p>这样一来，我们就处理好了所有的 src 寄存器之间的互斥关系，但是还需要处理 dst 和 src 之间的互斥关系。注意到：同语句的 src 和 dst 是不互斥的，因为比如 add s0, s0, s1 这种操作（即只要后续不再使用 src 的原值，则完全可以使用相同的 src 和 dst，在人工写汇编时也会常常这么做以实现 += 等效果）但是每一条语句的 dst 和这之后的所有 src （准确来说是所有活跃寄存器）是互斥的，这很容易理解，比如下列语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">addi %1, %2, 100 // 1</span><br><span class="line">mul %5, %3, %4 // 2</span><br><span class="line">mul %2, %1, %1 // 3</span><br></pre></td></tr></table></figure>
+<p>语句 2 中的 %5 和 %1 应当是互斥的，因为后面还需要用到 %1 的值，如果给 %1 和 %5 分配相同的寄存器，则后续语句 3 时使用 %1 时就得不到正确的值了，因为在语句 2 处被修改了。因此我们对上一句的 dst 寄存器和当前的所有 live 中的寄存器加边，保证其互斥。这里很容易发现，由于这样只能处理到第一条到倒数第二条语句的 dst，因为是对每条语句的“上一条”进行处理，因此最后一条语句的 dst 就没被处理，这也是前述处理最后一条语句 dst 的原因。</p>
+<p>最后，在每条指令开始遍历时新建一个空数组，将所有的当前的新活跃寄存器和上条语句的 dst 一同推入数组，并对数组中的元素两两建边即可。</p>
+]]></content>
+      <categories>
+        <category>PL</category>
+      </categories>
+      <tags>
+        <tag>PL</tag>
+        <tag>编译</tag>
+        <tag>编译后端</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Superscalar CPU Design - 3 - Branch Prediction</title>
+    <url>/2023/12/01/SSCPU-3/</url>
+    <content><![CDATA[<h2 id="概述"><a class="markdownIt-Anchor" href="#概述"></a> 概述</h2>
+<p>分支预测器的输入为当前指令的 PC 值即指令地址，根据该地址，一方面分支预测器本身预测该指令是否跳转，另一方面 BTB (Branch Target Buffer) 中保存了各个 PC 值对应的“上次跳转地址”，如果 BTB hit 且预测跳转，则跳转，否则不跳转。这样处理不需要实际根据该指令的值来判断该指令是否是分支指令，因为如果不是分支指令，一定不会写 BTB，访问 BTB 时一定会 miss，就不会发生跳转。同时这样也不需要获取 iCache 结果，可以和 iCache 取指令的过程并行进行。</p>
+<h2 id="分支预测器的实现"><a class="markdownIt-Anchor" href="#分支预测器的实现"></a> 分支预测器的实现</h2>
+<p>在分支预测器的表示中，跳转即为预测结果被接受即 Taken (T)，不跳转则为不被接受 Not Taken (N)。</p>
+<h3 id="2-bit-last-time-predict"><a class="markdownIt-Anchor" href="#2-bit-last-time-predict"></a> 2-Bit Last Time Predict</h3>
+<p>这种 2BC 预测器可以理解为一个四状态的状态机，强T，弱T，弱N，强N。前两个预测结果为 T，后两个结果 N，每次实际结果为 T 时向左转移，为 N 时向右转移。一般以弱T为初始值。</p>
+<p>一般来说，不同的分支指令应当用不同的预测器来存储结果，因此如果对每个指令保存一个 2BC，构成的一张“表”就是 Pattern History Table (PHT)。</p>
+<h3 id="全局历史预测"><a class="markdownIt-Anchor" href="#全局历史预测"></a> 全局历史预测</h3>
+<p>设置一个 x 位寄存器，记录所有指令中最近的 x 次跳转指令的实际结果，并根据这个寄存器的值和当前 PC 值拼接（或 xor，或其他计算）的结果作为地址去在一个 PHT 中去寻找结果（以及更新结果）</p>
+<h3 id="局部历史预测"><a class="markdownIt-Anchor" href="#局部历史预测"></a> 局部历史预测</h3>
+<p>设置一张大表格，对于每个 PC 都存储一个 x 位的局部历史，再根据局部历史去寻址一个局部历史对应的 PHT。</p>
+<h3 id="混合预测"><a class="markdownIt-Anchor" href="#混合预测"></a> 混合预测</h3>
+<p>同时使用全局预测和局部预测，再设置一个利用全局历史寄存器寻址的 PHT 来预测要选择局部的还是全局的预测结果。</p>
+<p>（其实可能没必要，要实现同时结合局部与全局信息的话，按局部历史结果、全局历史结果和 PC 值共同寻址 PHT 即可。</p>
+<h3 id="tage"><a class="markdownIt-Anchor" href="#tage"></a> TAGE</h3>
+<p>相对复杂。</p>
+<p><img src="https://pic4.zhimg.com/80/v2-25f078996c4c4dec8b879a074437ab63_1440w.webp" alt="TAGE" /></p>
 ]]></content>
       <categories>
         <category>SSCPU</category>
